@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+</head>
+<body>
+    <div class="container mt-3">
+        <h1 class="text-center"> Библиотечка </h1>
+        <hr>
+
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h2>Авторы</h2>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for author in authors %}
+                    <div class="col-md-6 mb-3">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">{{ author.nameAuthor }}</h5>
+                                <p class="card-text">{{ author.bio }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+                <h2>Жанры</h2>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for genre in genres %}
+                    <div class="col-md-4 mb-3">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">{{ genre.name }}</h5>
+                                <p class="card-text">{{ genre.description }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header bg-warning">
+                <h2>Книги</h2>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for book in books %}
+                    <div class="col-md-6 mb-3">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">{{ book.name }}</h5>
+                                <p class="card-text">
+                                    <strong>Автор:</strong> {{ book.author.nameAuthor }}<br>
+                                    <strong>Год:</strong> {{ book.publication_year }}<br>
+                                    <strong>Жанры:</strong> 
+                                    {% for genre in book.genres.all %}
+                                        {{ genre.name }}{% if not forloop.last %}, {% endif %}
+                                    {% endfor %}<br>
+                                    <strong>Описание:</strong> {{ book.description }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white">
+                <h2>Читатели</h2>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for reader in readers %}
+                    <div class="col-md-4 mb-3">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">{{ reader.first_name }} {{ reader.last_name }}</h5>
+                                <p class="card-text">
+                                    <strong>Email:</strong> {{ reader.email }}<br>
+                                    <strong>Номер билета:</strong> {{ reader.card_number }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h2>Состояния книг</h2>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for instance in bookinstances %}
+                    <div class="col-md-6 mb-3">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">{{ instance.book.name }}</h5>
+                                <p class="card-text">
+                                    <strong>Статус:</strong> 
+                                    <span>
+                                        {{ instance.get_status_display }}
+                                    </span><br>
+                                    <strong>Дата возврата:</strong> 
+                                    {% if instance.due_back %}
+                                        {{ instance.due_back }}
+                                    {% else %}
+                                        Не указана
+                                    {% endif %}<br>
+                                    <strong>Читатель:</strong> 
+                                    {% if instance.borrower %}
+                                        {{ instance.borrower.first_name }} {{ instance.borrower.last_name }}
+                                    {% else %}
+                                        Не выдана
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQb2b3I" crossorigin="anonymous"></script>
+</body>
+</html>
