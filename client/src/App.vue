@@ -84,6 +84,7 @@ onBeforeMount(async () => {
   
 </nav>
   <div class="container">
+    
     <router-view/>
   </div>
 

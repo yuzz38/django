@@ -54,7 +54,10 @@ async function onReaderAdd() {
   formData.set('last_name', readerToAdd.value.last_name);
   formData.set('email', readerToAdd.value.email);
   formData.set('card_number', readerToAdd.value.card_number);
-  formData.append('picture', readerPictureRef.value.files[0]);
+ 
+  if (readerPictureRef.value.files[0]) {
+     formData.append('picture', readerPictureRef.value.files[0]);
+  }
   await axios.post("/api/readers/",formData, {
     headers: {
       'Content-Type': 'multipart/form-data'
@@ -167,7 +170,7 @@ async function onUpdateReader() {
                       class="form-control"
                       ref="readerPictureRef"
                       @change="readerAddPictureChange"
-                      required
+                      
                       />
                       <label for="floatingInput">Фотография</label>
                   </div>

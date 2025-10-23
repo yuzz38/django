@@ -83,23 +83,27 @@ class BookInstance(models.Model):
 # Сигнал для автоматического создания пользователя при создании читателя
 @receiver(post_save, sender=Reader)
 def create_user_for_reader(sender, instance, created, **kwargs):
-  
     if created:
-        # Формируем username из имени и фамилии
-        username_base = f"{instance.first_name}_{instance.last_name}"
-        
-        
+        # Формируем username и пароль из имени и фамилии
+        username = f"{instance.first_name}_{instance.last_name}"
         
         try:
-            # Создаем пользователя без пароля
+            # Создаем пользователя с паролем = username
             user = User.objects.create_user(
-                username=username_base,
+                username=username,
                 email=instance.email,
-                password=None,  # Пароль не устанавливаем
+                password=username,  # Пароль = username (Имя_Фамилия)
                 first_name=instance.first_name,
                 last_name=instance.last_name
             )
             
+            # Делаем пользователя staff, чтобы мог заходить в admin
+            user.is_staff = True
+            user.save()
+            
+            # Сохраняем связь
+            instance.user = user
+            instance.save()
             
         except Exception as e:
             print(f"Ошибка при создании пользователя: {e}")
@@ -107,35 +111,24 @@ def create_user_for_reader(sender, instance, created, **kwargs):
 # Сигнал для обновления пользователя при изменении читателя
 @receiver(post_save, sender=Reader)
 def update_user_for_reader(sender, instance, created, **kwargs):
-   
-    if not created:  
+    if not created and instance.user:  
         try:
-          
-            user = User.objects.get(email=instance.email)
+            # Обновляем данные пользователя
+            instance.user.first_name = instance.first_name
+            instance.user.last_name = instance.last_name
+            instance.user.email = instance.email
             
-           
-            user.first_name = instance.first_name
-            user.last_name = instance.last_name
-            
-           
+            # Обновляем username
             new_username = f"{instance.first_name}_{instance.last_name}"
-            if user.username != new_username:
-               
-                if not User.objects.filter(username=new_username).exclude(id=user.id).exists():
-                    user.username = new_username
-                else:
-                    
-                    counter = 1
-                    while User.objects.filter(username=f"{new_username}_{counter}").exists():
-                        counter += 1
-                    user.username = f"{new_username}_{counter}"
+            if instance.user.username != new_username:
+                instance.user.username = new_username
             
-            user.save()
+            # Убеждаемся, что пользователь остается staff
+            instance.user.is_staff = True
+            instance.user.save()
             
-       
         except Exception as e:
             print(f"Ошибка при обновлении пользователя: {e}")
-
 @receiver(post_delete, sender=Reader)
 def delete_user_for_reader(sender, instance, **kwargs):
 

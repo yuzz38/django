@@ -215,7 +215,9 @@ async function onUpdateBookItem() {
                     <button class="btn btn-danger" @click="onRemoveClickBookItem(item)">
                         <i class="bi bi-x">x</i>
                     </button>
-                    
+                    <div class="mt-2 mb-2" style="width:100%;">
+                      Читатель - {{ readers.find(r => r.id === item.borrower)?.first_name }} {{ readers.find(r => r.id === item.borrower)?.last_name }}
+                    </div>
                     <button style="flex:0 0 100%;"
                         class="btn btn-success mt-2"
                         @click="onBookEditClickItem(item)"
@@ -223,7 +225,9 @@ async function onUpdateBookItem() {
                         data-bs-target="#editBookModalItem">
                         <span>Редактировать</span>
                     </button>
+                     
                 </div>
+                
                 </template>
             </div>
          </div>
