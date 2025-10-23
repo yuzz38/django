@@ -8,7 +8,7 @@ from django.db.models.signals import post_delete
 class Author(models.Model):
     nameAuthor = models.TextField("ФИО")
     bio = models.TextField("Биография")
-
+    picture = models.ImageField("Изображение", null=True, upload_to="library_img")
     def __str__(self) -> str:
         return self.nameAuthor
 
@@ -51,6 +51,7 @@ class Reader(models.Model):
     email = models.EmailField("Email")
     card_number = models.CharField("Номер читательского билета")
     user = models.OneToOneField("auth.User", on_delete=models.CASCADE, null=True)
+    picture = models.ImageField("Фото", null=True, upload_to="library_img")
     def __str__(self) -> str:
         return f"{self.first_name} {self.last_name}"
 
@@ -135,20 +136,15 @@ def update_user_for_reader(sender, instance, created, **kwargs):
         except Exception as e:
             print(f"Ошибка при обновлении пользователя: {e}")
 
-# Сигнал для удаления читателя при удалении пользователя
-@receiver(post_delete, sender=User)
-def delete_reader_on_user_delete(sender, instance, **kwargs):
+@receiver(post_delete, sender=Reader)
+def delete_user_for_reader(sender, instance, **kwargs):
 
     try:
-        
+        # Ищем пользователя по email
         if instance.email:
-            reader = Reader.objects.filter(email=instance.email).first()
-            if reader:
-                reader.delete()
-                print(f"Удален читатель {reader} при удалении пользователя {instance.username}")
-                return
-        
-        
-                
+            user = User.objects.filter(email=instance.email).first()
+            if user:
+                user.delete()
+            
     except Exception as e:
-        print(f"Ошибка при удалении читателя: {e}")
+        print(f"Ошибка при удалении пользователя: {e}")

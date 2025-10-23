@@ -4,7 +4,7 @@ from library.models import Author, Book, Genre, Reader, BookInstance
 class AuthorSerializer(serializers.ModelSerializer):
     class Meta:
         model = Author
-        fields = ['id', 'nameAuthor', 'bio']
+        fields = ['id', 'nameAuthor', 'bio', 'picture']
 
 class GenreSerializer(serializers.ModelSerializer):
     class Meta:
@@ -19,7 +19,7 @@ class BookSerializer(serializers.ModelSerializer):
 class ReaderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Reader
-        fields = ['id', 'first_name', 'last_name', 'email', 'card_number']
+        fields = ['id', 'first_name', 'last_name', 'email', 'card_number', 'picture']
 
 class BookInstanceSerializer(serializers.ModelSerializer):
     class Meta:
