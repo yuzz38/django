@@ -1,7 +1,10 @@
 <script setup>
 import axios from 'axios';
 import Cookies from 'js-cookie';
+
 import {computed, onBeforeMount, ref} from 'vue';
+import {useUserStore} from '@/stores/user_store';
+import {storeToRefs} from "pinia";
 
 const readers = ref([]);
 const books = ref([]);
@@ -39,11 +42,25 @@ onBeforeMount(async () => {
     await fetchAuthor()
     await fetchBookItem()
 })
+const userStore = useUserStore()
 
+const username = ref();
+const password = ref();
+const {
+    userInfo,
+} = storeToRefs(userStore)
+async function onFormSend() {
+    userStore.login(username.value, password.value)
+}
+async function handleLogout() {
+    await userStore.logout();
+}
 
 </script>
 <template>
+
   <nav class="navbar navbar-expand-lg bg-body-tertiary">
+
   <div class="container">
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
@@ -76,6 +93,7 @@ onBeforeMount(async () => {
           <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Пользователь</a>
           <ul class="dropdown-menu">
             <li><a class="dropdown-item" href="/admin">Админка</a></li>
+            <li><a class="dropdown-item" href="#" @click="handleLogout">Выйти</a></li>
           </ul>
         </li>
       </ul>
@@ -83,6 +101,9 @@ onBeforeMount(async () => {
   </div>
   
 </nav>
+
+    
+
   <div class="container">
     
     <router-view/>

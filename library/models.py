@@ -97,10 +97,7 @@ def create_user_for_reader(sender, instance, created, **kwargs):
                 last_name=instance.last_name
             )
             
-            # Делаем пользователя staff, чтобы мог заходить в admin
-            user.is_staff = True
-            user.save()
-            
+          
             # Сохраняем связь
             instance.user = user
             instance.save()
@@ -123,8 +120,7 @@ def update_user_for_reader(sender, instance, created, **kwargs):
             if instance.user.username != new_username:
                 instance.user.username = new_username
             
-            # Убеждаемся, что пользователь остается staff
-            instance.user.is_staff = True
+        
             instance.user.save()
             
         except Exception as e:

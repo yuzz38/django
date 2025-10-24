@@ -2,7 +2,8 @@
 import axios from 'axios';
 import Cookies from 'js-cookie';
 import {computed, onBeforeMount, ref} from 'vue';
-
+import {useUserStore} from '@/stores/user_store';
+import {storeToRefs} from "pinia";
 const readers = ref([]);
 const books = ref([]);
 const genre = ref([]);
@@ -45,15 +46,31 @@ function openImageModal(imageUrl) {
   showImageModal.value = true;
 }
 
+const userStore = useUserStore()
 
+const username = ref();
+const password = ref();
+const {
+    userInfo,
+} = storeToRefs(userStore)
+async function onFormSend() {
+    userStore.login(username.value, password.value)
+}
+async function handleLogout() {
+    await userStore.logout();
+}
 
 </script>
 <template>
 
  
    <div class="container mt-5">
+        <div v-if="userInfo && userInfo.is_authenticated" class="container mt-5">
+            <h3>Здравствуй, {{userInfo.username}}</h3>
+        </div>
      <h1 class="text-center"> Библиотечка </h1>
-        <div class="card mb-4">
+    
+        <div class="card mb-4" v-if="userInfo && userInfo.is_authenticated">
             <div class="card-header bg-primary text-white">
                 <h2>Авторы</h2>
             </div>
@@ -84,7 +101,7 @@ function openImageModal(imageUrl) {
             </div>
         </div>
         
-        <div class="card mb-4">
+        <div class="card mb-4" v-if="userInfo && userInfo.is_authenticated && userInfo.is_staff">
             <div class="card-header bg-success text-white">
                 <h2>Жанры</h2>
             </div>
@@ -103,7 +120,7 @@ function openImageModal(imageUrl) {
                 </div>
             </div>
         </div>
-          <div class="card mb-4">
+        <div class="card mb-4" v-if="userInfo && userInfo.is_authenticated">
             <div class="card-header bg-warning">
                 <h2>Книги</h2>
             </div>
@@ -134,7 +151,7 @@ function openImageModal(imageUrl) {
                 </div>
             </div>
         </div>
-          <div class="card mb-4">
+          <div class="card mb-4"  v-if="userInfo && userInfo.is_authenticated">
             <div class="card-header bg-info text-white">
                 <h2>Читатели</h2>
             </div>
@@ -164,7 +181,7 @@ function openImageModal(imageUrl) {
                 </div>
             </div>
         </div>
-         <div class="card mb-4">
+         <div class="card mb-4"  v-if="userInfo && userInfo.is_authenticated  && userInfo.is_staff" > 
             <div class="card-header bg-secondary text-white">
                 <h2>Состояния книг</h2>
             </div>
@@ -224,7 +241,29 @@ function openImageModal(imageUrl) {
 </div>
 
 
+<div v-if="userInfo && !userInfo.is_authenticated" class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5)">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Пожалуйста, авторизуйтесь как администратор или читатель</h5>
+         
+        </div>
+        <div class="modal-body text-center">
+         <div v-if="userInfo && !userInfo.is_authenticated" class="container">
+        <form
+            @submit.stop.prevent="onFormSend"
+            style="display: flex; gap: 8px; align-items: center; justify-content: center; padding: 8px; width: 100%">
 
+            <input v-model="username" type="text" placeholder="username" required class="input-group-text" style="flex: auto;">
+            <input v-model="password" type="password" placeholder="password" required class="input-group-text"  style="flex: auto;">
+
+            <button type="submit" class="btn btn-primary">Отправить</button>
+        </form>
+    </div>
+        </div>
+      </div>
+    </div>
+</div>
    
 
   

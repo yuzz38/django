@@ -2,6 +2,13 @@
 import axios from 'axios';
 import Cookies from 'js-cookie';
 import {computed, onBeforeMount, ref} from 'vue';
+import {useUserStore} from '@/stores/user_store';
+import {storeToRefs} from "pinia";
+const userStore = useUserStore()
+
+const {
+    userInfo,
+} = storeToRefs(userStore)
 const readers = ref([]);
 const books = ref([]);
 const genre = ref([]);
@@ -40,69 +47,21 @@ onBeforeMount(async () => {
 
 const readerToAdd = ref({});
 const genreToAdd = ref({});
-const authorToAdd = ref({});
-const booksToAdd = ref({});
-const booksToAddItem = ref({});
-async function onReaderAdd() {
-  await axios.post("/api/readers/", {
-    ...readerToAdd.value,
-  });
-  await fetchReaders(); // переподтягиваю
-}
+
+
 async function onGenreAdd() {
   await axios.post("/api/genres/", {
     ...genreToAdd.value,
   });
   await fetchGenre(); // переподтягиваю
 }
-async function onAuthorAdd() {
-  await axios.post("/api/authors/", {
-    ...authorToAdd.value,
-  });
-  await fetchAuthor(); // переподтягиваю
-}
-async function onBookAdd() {
-  await axios.post("/api/books/", {
-    ...booksToAdd.value,
-  });
-  await fetchBooks(); // переподтягиваю
-}
-async function onBookAddItem() {
-  await axios.post("/api/bookinstances/", {
-    ...booksToAddItem.value,
-  });
-  await fetchBookItem(); // переподтягиваю
-}
-async function onRemoveClick(reader) {
-  await axios.delete(`/api/readers/${reader.id}/`);
-  await fetchReaders(); // переподтягиваю
-}
+
+
 async function onRemoveClickGenre(genre) {
   await axios.delete(`/api/genres/${genre.id}/`);
   await fetchGenre(); // переподтягиваю
 }
-async function onRemoveClickAuthor(author) {
-  await axios.delete(`/api/authors/${author.id}/`);
-  await fetchAuthor(); // переподтягиваю
-}
-async function onRemoveClickBook(book) {
-  await axios.delete(`/api/books/${book.id}/`);
-  await fetchBooks(); // переподтягиваю
-}
-async function onRemoveClickBookItem(bookItem) {
-  await axios.delete(`/api/bookinstances/${bookItem.id}/`);
-  await fetchBookItem(); // переподтягиваю
-}
-const readerToEdit = ref({});
-async function onReaderEditClick(reader) {
-  readerToEdit.value = { ...reader };
-}
-async function onUpdateReader() {
-  await axios.put(`/api/readers/${readerToEdit.value.id}/`, {
-    ...readerToEdit.value,
-  });
-  await fetchReaders();
-}
+
 
 const genreToEdit = ref({});
 async function onGenreEditClick(genre) {
@@ -116,42 +75,14 @@ async function onUpdateGenre() {
 }
 
 
-const authorToEdit = ref({});
-async function onAuthorEditClick(author) {
-  authorToEdit.value = { ...author };
-}
-async function onUpdateAuthor() {
-  await axios.put(`/api/authors/${authorToEdit.value.id}/`, {
-    ...authorToEdit.value,
-  });
-  await fetchAuthor();
-}
 
-const bookToEdit = ref({});
-async function onBookEditClick(book) {
-  bookToEdit.value = { ...book };
-}
-async function onUpdateBook() {
-  await axios.put(`/api/books/${bookToEdit.value.id}/`, {
-    ...bookToEdit.value,
-  });
-  await fetchBooks();
-}
 
-const bookToEditItem = ref({});
-async function onBookEditClickItem(book) {
-  bookToEditItem.value = { ...book };
-}
-async function onUpdateBookItem() {
-  await axios.put(`/api/bookinstances/${bookToEditItem.value.id}/`, {
-    ...bookToEditItem.value,
-  });
-  await fetchBookItem();
-}
+
 </script>
 <template>
-  <div class="border p-5">
-          <h3>Добавить жанр</h3>
+  <div class="border p-5" v-if="userInfo && userInfo.is_authenticated">
+         <div class="mb-5" v-if="userInfo && userInfo.is_authenticated && userInfo.is_staff">
+           <h3>Добавить жанр</h3>
           <form @submit.prevent.stop="onGenreAdd">
               
               <div class="row">
@@ -186,16 +117,20 @@ async function onUpdateBookItem() {
                   </div>
               </div>
           </form>
-          <h4 class="mt-5">Список жанров</h4>
+         </div>
+          <h4>Список жанров</h4>
         <div class="row">
             <template v-for="item in genre">
             <div class="col-3 p-3 border d-flex justify-content-between align-items-center flex-wrap">{{ item.name }} 
                 
-                 <button class="btn btn-danger" @click="onRemoveClickGenre(item)">
+                 <button v-if="userInfo && userInfo.is_authenticated && userInfo.is_staff" class="btn btn-danger" @click="onRemoveClickGenre(item)">
                     <i class="bi bi-x">x</i>
                 </button>
-                
-                <button style="flex:0 0 100%;"
+                <div style="width: 100%;">
+                  Описание:
+                  {{ item.description }}
+                </div>
+                <button style="flex:0 0 100%;"v-if="userInfo && userInfo.is_authenticated && userInfo.is_staff"
                     class="btn btn-success mt-2"
                     @click="onGenreEditClick(item)"
                     data-bs-toggle="modal"
@@ -206,6 +141,9 @@ async function onUpdateBookItem() {
             </template>
         </div>
          </div>
+         <div v-else>
+      <h2 class="mt-2">Пожалуйста, <a href="/">авторизуйтесь</a></h2>
+    </div>
          <div class="modal fade" id="editGenreModal" tabindex="-1">
     <div class="modal-dialog">
       <div class="modal-content">

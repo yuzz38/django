@@ -2,7 +2,13 @@
 import axios from 'axios';
 import Cookies from 'js-cookie';
 import {computed, onBeforeMount, ref} from 'vue';
+import {useUserStore} from '@/stores/user_store';
+import {storeToRefs} from "pinia";
+const userStore = useUserStore()
 
+const {
+    userInfo,
+} = storeToRefs(userStore)
 const readers = ref([]);
 const books = ref([]);
 const genre = ref([]);
@@ -110,7 +116,8 @@ async function onUpdateReader() {
 
 </script>
 <template>
-  <div class="border p-5">
+  <div class="border p-5" v-if="userInfo && userInfo.is_authenticated">
+        <div class="mb-5" v-if="userInfo && userInfo.is_authenticated && userInfo.is_staff">
           <h3>Добавить читателя</h3>
         <form @submit.prevent.stop="onReaderAdd">
             
@@ -183,13 +190,15 @@ async function onUpdateReader() {
             </div>
             <img :src="readerImageUrl" style="max-width: 300px; margin-top:20px;border-radius:20px;"/>
         </form>
-        <h4 class="mt-5">Список читателей</h4>
+        </div>
+        <h4 v-if="userInfo && userInfo.is_authenticated && userInfo.is_staff" >Список читателей</h4>
+        <h4 v-else-if="userInfo && userInfo.is_authenticated">Моя информация</h4>
         <div class="row">
             <template v-for="item in readers">
             <div class="col-3 p-3 border d-flex justify-content-between align-items-center flex-wrap">
                     <div v-show="item.picture"><img :src="item.picture" style="max-width: 100%; border-radius: 20px; height: 300px; object-fit: cover; width:300px; margin-bottom:20px"></div>  {{ item.first_name }} 
                 
-                 <button class="btn btn-danger" @click="onRemoveClick(item)">
+                 <button class="btn btn-danger" @click="onRemoveClick(item)" v-if="userInfo && userInfo.is_authenticated && userInfo.is_staff">
                     <i class="bi bi-x">x</i>
                 </button>
                 
@@ -204,6 +213,9 @@ async function onUpdateReader() {
             </template>
         </div>
         </div>
+        <div v-else>
+      <h2 class="mt-2">Пожалуйста, <a href="/">авторизуйтесь</a></h2>
+    </div>
         <div class="modal fade" id="editReaderModal" tabindex="-1">
     <div class="modal-dialog">
       <div class="modal-content">

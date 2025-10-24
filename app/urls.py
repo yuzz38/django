@@ -18,7 +18,7 @@ from django.contrib import admin
 from django.urls import path
 from django.urls import include
 from rest_framework.routers import DefaultRouter
-from library.api import AuthorViewSet, BookViewSet, GenreViewSet, ReaderViewSet, BookInstanceViewSet
+from library.api import AuthorViewSet, BookViewSet, GenreViewSet, ReaderViewSet, BookInstanceViewSet, UserViewSet
 from library.views import ShowAuthorsView
 from django.conf import settings
 from django.conf.urls.static import static
@@ -28,6 +28,7 @@ router.register("authors", AuthorViewSet, basename="authors")
 router.register("genres", GenreViewSet, basename="genres")
 router.register("books", BookViewSet, basename="books")
 router.register("readers", ReaderViewSet, basename="readers")
+router.register("user", UserViewSet, basename="user")
 router.register("bookinstances", BookInstanceViewSet, basename="bookinstances")
 
 urlpatterns = [

@@ -2,7 +2,13 @@
 import axios from 'axios';
 import Cookies from 'js-cookie';
 import {computed, onBeforeMount, ref} from 'vue';
+import {useUserStore} from '@/stores/user_store';
+import {storeToRefs} from "pinia";
+const userStore = useUserStore()
 
+const {
+    userInfo,
+} = storeToRefs(userStore)
 const readers = ref([]);
 const books = ref([]);
 const genre = ref([]);
@@ -151,8 +157,10 @@ async function onUpdateBookItem() {
 }
 </script>
 <template>
- <div class="border p-5">
-           <h3>Выдать книгу</h3>
+        <div class="border p-5" v-if="userInfo && userInfo.is_authenticated">
+          <div>
+            <h3 v-if="userInfo && userInfo.is_authenticated && userInfo.is_staff">Выдать книгу</h3>
+            <h3 v-else-if="userInfo && userInfo.is_authenticated">Взять книгу</h3>
             <form @submit.prevent.stop="onBookAddItem">
                 <div class="row">
             <div class="col-3">
@@ -195,30 +203,41 @@ async function onUpdateBookItem() {
                   <label for="floatingInput">Читатель</label>
                 </div>
             </div>
-                 <div class="col-2">
+          
+                 <div class="col-2" v-if="userInfo && userInfo.is_authenticated && userInfo.is_staff">
                   <button class="btn btn-primary"  style="width: 100%;height: 100%;">
                       Выдать 
+                  </button>
+                  </div>
+                     <div class="col-2" v-else-if="userInfo && userInfo.is_authenticated">
+                  <button class="btn btn-primary"  style="width: 100%;height: 100%;">
+                      Взять 
                   </button>
                   </div>
           </div>
            
           </form>
-          <h4 class="mt-5">Состояние книг</h4>
+          </div>
+          <h4 class="mt-5" v-if="userInfo && userInfo.is_authenticated && userInfo.is_staff">Состояние книг</h4>
+          <h4 class="mt-5" v-else-if="userInfo && userInfo.is_authenticated">Мои книги</h4>
             <div class="row">
                 <template v-for="item in bookItem">
                 <div class="col-3 p-3 border d-flex justify-content-between align-items-center flex-wrap">{{ books.find(b => b.id === item.book)?.name || 'Книга' }}  <br> <hr>
-                    <span v-if="item.status === 'available'">На полке</span>
+                
+                    
+                    <button v-if="userInfo && userInfo.is_authenticated && userInfo.is_staff"class="btn btn-danger" @click="onRemoveClickBookItem(item)">
+                        <i class="bi bi-x">x</i>
+                    </button>
+                    <div style="width:100%;">
+                          <span v-if="item.status === 'available'">На полке</span>
                     <span v-else-if="item.status === 'borrowed'">Выдана</span>
                     <span v-else-if="item.status === 'maintenance'">В ремонте</span>
                     <span v-else>{{ item.status }}</span>
-                    
-                    <button class="btn btn-danger" @click="onRemoveClickBookItem(item)">
-                        <i class="bi bi-x">x</i>
-                    </button>
+                    </div>
                     <div class="mt-2 mb-2" style="width:100%;">
                       Читатель - {{ readers.find(r => r.id === item.borrower)?.first_name }} {{ readers.find(r => r.id === item.borrower)?.last_name }}
                     </div>
-                    <button style="flex:0 0 100%;"
+                    <button style="flex:0 0 100%;" v-if="userInfo && userInfo.is_authenticated && userInfo.is_staff"
                         class="btn btn-success mt-2"
                         @click="onBookEditClickItem(item)"
                         data-bs-toggle="modal"
@@ -230,7 +249,10 @@ async function onUpdateBookItem() {
                 
                 </template>
             </div>
-         </div>
+        </div>
+        <div v-else>
+          <h2 class="mt-2">Пожалуйста, <a href="/">авторизуйтесь</a></h2>
+        </div>  
          <div class="modal fade" id="editBookModalItem" tabindex="-1">
     <div class="modal-dialog">
       <div class="modal-content">

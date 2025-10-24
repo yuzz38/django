@@ -2,6 +2,10 @@ from rest_framework.viewsets import GenericViewSet
 from rest_framework import mixins, viewsets
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
+from django.contrib.auth import authenticate, login, logout
+from rest_framework import viewsets, permissions
+from rest_framework.decorators import action
+from rest_framework.response import Response
 from library.models import Author, Book, Genre, Reader, BookInstance
 from library.serializers import AuthorSerializer, BookSerializer, GenreSerializer, ReaderSerializer, BookInstanceSerializer
 
@@ -34,7 +38,40 @@ class BookViewSet(mixins.ListModelMixin,
     queryset = Book.objects.all()
     serializer_class = BookSerializer
   
+class UserViewSet(viewsets.GenericViewSet):
+    permission_classes = []
 
+    @action(detail=False, url_path="info", methods=["GET"])
+    def get_info(self, request, *args, **kwargs):
+        return Response({
+            "username": request.user.username,
+            "is_authenticated": request.user.is_authenticated,
+           
+            "is_staff": request.user.is_staff,
+        })
+
+    @action(detail=False, url_path="login", methods=["POST"])
+    def login_user(self, request, *args, **kwargs):
+        username = self.request.data['username']
+        password = self.request.data['password']
+
+        user = authenticate(username=username, password=password)
+        if user is not None:
+            login(request, user)
+
+            return Response({
+                'success': True,
+            })
+
+        return Response({
+            'success': False,
+        })
+    @action(detail=False, url_path="logout", methods=["POST"])
+    def logout_user(self, request, *args, **kwargs):
+        logout(request)
+        return Response({
+            'success': True,
+        }, status=status.HTTP_200_OK)
 class ReaderViewSet(mixins.ListModelMixin, 
                    mixins.CreateModelMixin, 
                    mixins.RetrieveModelMixin,
@@ -62,8 +99,7 @@ class BookInstanceViewSet(mixins.ListModelMixin,
                          GenericViewSet):
     queryset = BookInstance.objects.all()
     serializer_class = BookInstanceSerializer
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
-    filterset_fields = ['borrower']  # Добавляем фильтр по borrower
+
     
     def get_queryset(self):
         qs = super().get_queryset()
