@@ -6,6 +6,8 @@ from django.contrib.auth import authenticate, login, logout
 from rest_framework import viewsets, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework import serializers
+from django.db.models import Avg, Count, Max, Min
 from library.models import Author, Book, Genre, Reader, BookInstance
 from library.serializers import AuthorSerializer, BookSerializer, GenreSerializer, ReaderSerializer, BookInstanceSerializer
 
@@ -17,6 +19,46 @@ class AuthorViewSet(mixins.ListModelMixin,
                    GenericViewSet):
     queryset = Author.objects.all()
     serializer_class = AuthorSerializer
+    class StatsSerializer(serializers.Serializer):
+        count = serializers.IntegerField()
+        avg_books = serializers.FloatField()
+        max_books = serializers.IntegerField()
+        min_books = serializers.IntegerField()
+        total_books = serializers.IntegerField()
+        
+    @action(detail=False, methods=["GET"], url_path="stats")
+    def get_stats(self, request, *args, **kwargs):
+
+      
+        
+        # Общее количество авторов
+        total_authors = Author.objects.count()
+        
+        # Статистика по книгам
+        author_stats = Author.objects.annotate(
+            book_count=Count('book')  # предполагая, что related_name='book' в модели Book
+        ).aggregate(
+            count=Count("*"),
+            avg_books=Avg("book_count"),
+            max_books=Max("book_count"),
+            min_books=Min("book_count"),
+        )
+        
+        # Общее количество книг
+        total_books = Book.objects.count()
+        
+        # Объединяем статистику
+        stats = {
+            'count': total_authors,
+            'avg_books': author_stats['avg_books'],
+            'max_books': author_stats['max_books'],
+            'min_books': author_stats['min_books'],
+            'total_books': total_books
+        }
+        
+        serializer = self.StatsSerializer(instance=stats)
+        return Response(serializer.data)
+
    
 
 class GenreViewSet(mixins.ListModelMixin, 
@@ -27,6 +69,37 @@ class GenreViewSet(mixins.ListModelMixin,
                   GenericViewSet):
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
+    class GenreStatsSerializer(serializers.Serializer):
+        total_genres = serializers.IntegerField()
+        total_books = serializers.IntegerField()
+        
+        most_popular_genre = serializers.CharField()
+        books_in_popular_genre = serializers.IntegerField()
+        
+    @action(detail=False, methods=["GET"], url_path="stats")
+    def get_genre_stats(self, request, *args, **kwargs):
+     
+        
+        # Статистика по жанрам
+        genre_stats = Genre.objects.annotate(
+            book_count=Count('book')  # предполагая, что related_name='book' в модели Book
+        ).order_by('-book_count')
+        
+        total_genres = genre_stats.count()
+        total_books = Book.objects.count()
+        
+        # Самый популярный жанр
+        most_popular = genre_stats.first()
+        
+        stats = {
+            'total_genres': total_genres,
+            'total_books': total_books,
+            'most_popular_genre': most_popular.name,
+            'books_in_popular_genre': most_popular.book_count
+        }
+        
+        serializer = self.GenreStatsSerializer(instance=stats)
+        return Response(serializer.data)
     
 
 class BookViewSet(mixins.ListModelMixin, 

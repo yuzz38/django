@@ -70,6 +70,21 @@ const uniqueGenres = computed(() => {
     return true;
   });
 });
+
+const showAllAuthorsModal = ref(false);
+
+
+const paginatedAuthors = computed(() => {
+  return authors.value.slice(0, 10);
+});
+
+
+
+
+function openAllAuthorsModal() {
+  showAllAuthorsModal.value = true;
+}
+
 </script>
 <template>
 
@@ -81,33 +96,34 @@ const uniqueGenres = computed(() => {
      <h1 class="text-center"> Библиотечка </h1>
     
         <div class="card mb-4" v-if="userInfo && userInfo.is_authenticated">
-            <div class="card-header bg-primary text-white">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                 <h2>Авторы</h2>
+                <button @click="openAllAuthorsModal" class="btn btn-light btn-sm">
+                    Показать всех ({{ authors.length }})
+                </button>
             </div>
             <div class="card-body">
                 <div class="row">
-
-                    <template v-for="author in authors">
+                    <template v-for="author in paginatedAuthors" :key="author.id">
                          <div class="col-md-6 mb-3">
-                        <div class="card">
-                            <div class="card-body">
-                                
-                                <div class="row">
-                                  <div class="col-8">
-                                    <h5 class="card-title">{{ author.nameAuthor }}</h5>
-                                    <p class="card-text">{{ author.bio }}</p>
-                                  </div>
-                                  <div class="col-4" style="text-align: right;">
-                                   <img :src="author.picture" @click="openImageModal(author.picture)" style="max-width:100px; border-radius:20px; max-height:100px;height:100px;  cursor: pointer; "/>
-                                  </div>
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="row">
+                                      <div class="col-8">
+                                        <h5 class="card-title">{{ author.nameAuthor }}</h5>
+                                        <p class="card-text">{{ author.bio }}</p>
+                                      </div>
+                                      <div class="col-4" style="text-align: right;">
+                                       <img :src="author.picture" @click="openImageModal(author.picture)" style="max-width:100px; border-radius:20px; max-height:100px;height:100px;  cursor: pointer; "/>
+                                      </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
                     </template>
-                    
-                    
                 </div>
+                
+             
             </div>
         </div>
         
@@ -145,10 +161,9 @@ const uniqueGenres = computed(() => {
                                     <strong>Автор:</strong>   {{ authors.find(a => a.id === book.author)?.nameAuthor }} <br>
 
                                     <strong>Год:</strong> {{ book.publication_year }}<br>
-                                    <strong>Жанры: </strong> 
-                                   <span v-for="genreId in book.genres" :key="genreId">
-                                        {{ genre.find(g => g.id === genreId)?.name }}
-                                    </span>
+                                   <strong>Жанр: </strong> 
+                                    {{ genre.find(g => g.id === book.genres)?.name || 'Не указан' }}
+                                 
                                            
                                        
                                     <br>
@@ -249,6 +264,47 @@ const uniqueGenres = computed(() => {
       </div>
     </div>
 </div>
+ <div v-if="showAllAuthorsModal" class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5)">
+        <div class="modal-dialog modal-xl">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Все авторы ({{ authors.length }})</h5>
+              <button
+                type="button"
+                class="btn-close"
+                @click="showAllAuthorsModal = false"
+                aria-label="Close"
+              ></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <template v-for="author in authors" :key="author.id">
+                         <div class="col-md-6 mb-3">
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="row">
+                                      <div class="col-8">
+                                        <h6 class="card-title">{{ author.nameAuthor }}</h6>
+                                        <p class="card-text small">{{ author.bio }}</p>
+                                      </div>
+                                      <div class="col-4" style="text-align: right;">
+                                       <img :src="author.picture" style="max-width:80px; border-radius:15px; max-height:80px;height:80px; cursor: pointer; "/>
+                                      </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" @click="showAllAuthorsModal = false">
+                    Закрыть
+                </button>
+            </div>
+          </div>
+        </div>
+   </div>
 
 
 <div v-if="userInfo && !userInfo.is_authenticated" class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5)">
