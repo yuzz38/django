@@ -59,7 +59,17 @@ async function onFormSend() {
 async function handleLogout() {
     await userStore.logout();
 }
-
+// Вычисляемое свойство для уникальных жанров
+const uniqueGenres = computed(() => {
+  const seen = new Set();
+  return genre.value.filter(item => {
+    if (seen.has(item.name)) {
+      return false;
+    }
+    seen.add(item.name);
+    return true;
+  });
+});
 </script>
 <template>
 
@@ -107,7 +117,7 @@ async function handleLogout() {
             </div>
             <div class="card-body">
                 <div class="row">
-                    <template v-for="genre in genre">
+                    <template v-for="genre in uniqueGenres" :key="genre.id">
                           <div class="col-md-4 mb-3">
                         <div class="card">
                             <div class="card-body">
@@ -151,7 +161,7 @@ async function handleLogout() {
                 </div>
             </div>
         </div>
-          <div class="card mb-4"  v-if="userInfo && userInfo.is_authenticated">
+          <div class="card mb-4"  v-if="userInfo && userInfo.is_authenticated && userInfo.is_staff">
             <div class="card-header bg-info text-white">
                 <h2>Читатели</h2>
             </div>

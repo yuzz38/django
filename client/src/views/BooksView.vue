@@ -50,89 +50,19 @@ const genreToAdd = ref({});
 const authorToAdd = ref({});
 const booksToAdd = ref({});
 const booksToAddItem = ref({});
-async function onReaderAdd() {
-  await axios.post("/api/readers/", {
-    ...readerToAdd.value,
-  });
-  await fetchReaders(); // переподтягиваю
-}
-async function onGenreAdd() {
-  await axios.post("/api/genres/", {
-    ...genreToAdd.value,
-  });
-  await fetchGenre(); // переподтягиваю
-}
-async function onAuthorAdd() {
-  await axios.post("/api/authors/", {
-    ...authorToAdd.value,
-  });
-  await fetchAuthor(); // переподтягиваю
-}
+
 async function onBookAdd() {
   await axios.post("/api/books/", {
     ...booksToAdd.value,
   });
   await fetchBooks(); // переподтягиваю
 }
-async function onBookAddItem() {
-  await axios.post("/api/bookinstances/", {
-    ...booksToAddItem.value,
-  });
-  await fetchBookItem(); // переподтягиваю
-}
-async function onRemoveClick(reader) {
-  await axios.delete(`/api/readers/${reader.id}/`);
-  await fetchReaders(); // переподтягиваю
-}
-async function onRemoveClickGenre(genre) {
-  await axios.delete(`/api/genres/${genre.id}/`);
-  await fetchGenre(); // переподтягиваю
-}
-async function onRemoveClickAuthor(author) {
-  await axios.delete(`/api/authors/${author.id}/`);
-  await fetchAuthor(); // переподтягиваю
-}
+
 async function onRemoveClickBook(book) {
   await axios.delete(`/api/books/${book.id}/`);
   await fetchBooks(); // переподтягиваю
 }
-async function onRemoveClickBookItem(bookItem) {
-  await axios.delete(`/api/bookinstances/${bookItem.id}/`);
-  await fetchBookItem(); // переподтягиваю
-}
-const readerToEdit = ref({});
-async function onReaderEditClick(reader) {
-  readerToEdit.value = { ...reader };
-}
-async function onUpdateReader() {
-  await axios.put(`/api/readers/${readerToEdit.value.id}/`, {
-    ...readerToEdit.value,
-  });
-  await fetchReaders();
-}
 
-const genreToEdit = ref({});
-async function onGenreEditClick(genre) {
-  genreToEdit.value = { ...genre };
-}
-async function onUpdateGenre() {
-  await axios.put(`/api/genres/${genreToEdit.value.id}/`, {
-    ...genreToEdit.value,
-  });
-  await fetchGenre();
-}
-
-
-const authorToEdit = ref({});
-async function onAuthorEditClick(author) {
-  authorToEdit.value = { ...author };
-}
-async function onUpdateAuthor() {
-  await axios.put(`/api/authors/${authorToEdit.value.id}/`, {
-    ...authorToEdit.value,
-  });
-  await fetchAuthor();
-}
 
 const bookToEdit = ref({});
 async function onBookEditClick(book) {
@@ -145,16 +75,16 @@ async function onUpdateBook() {
   await fetchBooks();
 }
 
-const bookToEditItem = ref({});
-async function onBookEditClickItem(book) {
-  bookToEditItem.value = { ...book };
-}
-async function onUpdateBookItem() {
-  await axios.put(`/api/bookinstances/${bookToEditItem.value.id}/`, {
-    ...bookToEditItem.value,
+const uniqueGenres = computed(() => {
+  const seen = new Set();
+  return genre.value.filter(item => {
+    if (seen.has(item.name)) {
+      return false;
+    }
+    seen.add(item.name);
+    return true;
   });
-  await fetchBookItem();
-}
+});
 </script>
 <template>
     <div class="border p-5" v-if="userInfo && userInfo.is_authenticated">
@@ -185,15 +115,15 @@ async function onUpdateBookItem() {
                         <label for="floatingInput">Автор</label>
                       </div>
                   </div>
-                  <div class="col-4">
-                      <div class="form-floating">
-                        <select class="form-select" v-model="booksToAdd.genres" multiple> 
-                          <option :value="g.id" v-for="g in genre">
-                            {{ g.name }}
-                          </option>
-                        </select>
-                        <label for="floatingInput">Жанр</label>
-                      </div>
+                 <div class="col-4">
+                    <div class="form-floating">
+                      <select class="form-select" v-model="booksToAdd.genres"> 
+                        <option :value="g.id" v-for="g in uniqueGenres" :key="g.id">
+                          {{ g.name }}
+                        </option>
+                      </select>
+                      <label for="floatingInput">Жанр</label>
+                    </div>
                   </div>
                   <div class="col-4">
                   <div class="form-floating">
@@ -296,11 +226,11 @@ async function onUpdateBookItem() {
             </div>
             <div class="col-6 mb-2">
                       <div class="form-floating">
-                        <select class="form-select" v-model="bookToEdit.genres" multiple> 
-                          <option :value="g.id" v-for="g in genre">
-                            {{ g.name }}
-                          </option>
-                        </select>
+                        <select class="form-select" v-model="bookToEdit.genres"> 
+                        <option :value="g.id" v-for="g in uniqueGenres" :key="g.id">
+                          {{ g.name }}
+                        </option>
+                      </select>
                         <label for="floatingInput">Жанр</label>
                       </div>
             </div>

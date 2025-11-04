@@ -14,6 +14,7 @@ const books = ref([]);
 const genre = ref([]);
 const authors = ref([]);
 const bookItem = ref([]);
+const selectedReader = ref(null); 
 onBeforeMount(() => {
   axios.defaults.headers.common['X-CSRFToken'] = Cookies.get("csrftoken");
 })
@@ -45,105 +46,31 @@ onBeforeMount(async () => {
     await fetchBookItem()
 })
 
-const readerToAdd = ref({});
-const genreToAdd = ref({});
-const authorToAdd = ref({});
-const booksToAdd = ref({});
+const filteredBookItems = computed(() => {
+  if (!selectedReader.value) {
+    return bookItem.value;
+  }
+  return bookItem.value.filter(item => item.borrower === parseInt(selectedReader.value));
+});
+
 const booksToAddItem = ref({});
-async function onReaderAdd() {
-  await axios.post("/api/readers/", {
-    ...readerToAdd.value,
-  });
-  await fetchReaders(); // переподтягиваю
-}
-async function onGenreAdd() {
-  await axios.post("/api/genres/", {
-    ...genreToAdd.value,
-  });
-  await fetchGenre(); // переподтягиваю
-}
-async function onAuthorAdd() {
-  await axios.post("/api/authors/", {
-    ...authorToAdd.value,
-  });
-  await fetchAuthor(); // переподтягиваю
-}
-async function onBookAdd() {
-  await axios.post("/api/books/", {
-    ...booksToAdd.value,
-  });
-  await fetchBooks(); // переподтягиваю
-}
+
 async function onBookAddItem() {
   await axios.post("/api/bookinstances/", {
     ...booksToAddItem.value,
   });
   await fetchBookItem(); // переподтягиваю
 }
-async function onRemoveClick(reader) {
-  await axios.delete(`/api/readers/${reader.id}/`);
-  await fetchReaders(); // переподтягиваю
-}
-async function onRemoveClickGenre(genre) {
-  await axios.delete(`/api/genres/${genre.id}/`);
-  await fetchGenre(); // переподтягиваю
-}
-async function onRemoveClickAuthor(author) {
-  await axios.delete(`/api/authors/${author.id}/`);
-  await fetchAuthor(); // переподтягиваю
-}
-async function onRemoveClickBook(book) {
-  await axios.delete(`/api/books/${book.id}/`);
-  await fetchBooks(); // переподтягиваю
-}
+
 async function onRemoveClickBookItem(bookItem) {
   await axios.delete(`/api/bookinstances/${bookItem.id}/`);
   await fetchBookItem(); // переподтягиваю
 }
-const readerToEdit = ref({});
-async function onReaderEditClick(reader) {
-  readerToEdit.value = { ...reader };
-}
-async function onUpdateReader() {
-  await axios.put(`/api/readers/${readerToEdit.value.id}/`, {
-    ...readerToEdit.value,
-  });
-  await fetchReaders();
-}
-
-const genreToEdit = ref({});
-async function onGenreEditClick(genre) {
-  genreToEdit.value = { ...genre };
-}
-async function onUpdateGenre() {
-  await axios.put(`/api/genres/${genreToEdit.value.id}/`, {
-    ...genreToEdit.value,
-  });
-  await fetchGenre();
-}
 
 
-const authorToEdit = ref({});
-async function onAuthorEditClick(author) {
-  authorToEdit.value = { ...author };
-}
-async function onUpdateAuthor() {
-  await axios.put(`/api/authors/${authorToEdit.value.id}/`, {
-    ...authorToEdit.value,
-  });
-  await fetchAuthor();
-}
 
-const bookToEdit = ref({});
-async function onBookEditClick(book) {
-  bookToEdit.value = { ...book };
-}
-async function onUpdateBook() {
-  await axios.put(`/api/books/${bookToEdit.value.id}/`, {
-    ...bookToEdit.value,
-  });
-  await fetchBooks();
-}
+
+
 
 const bookToEditItem = ref({});
 async function onBookEditClickItem(book) {
@@ -218,10 +145,40 @@ async function onUpdateBookItem() {
            
           </form>
           </div>
+
+         
+          <div class="mt-4" v-if="userInfo && userInfo.is_authenticated && userInfo.is_staff">
+            <h4>Фильтр по читателю</h4>
+            <div class="row">
+              <div class="col-6">
+                <div class="form-floating">
+                  <select class="form-select" v-model="selectedReader">
+                    <option value="">Все читатели</option>
+                    <option :value="reader.id" v-for="reader in readers" :key="reader.id">
+                      {{ reader.first_name }} {{ reader.last_name }}
+                    </option>
+                  </select>
+                  <label for="floatingInput">Выберите читателя</label>
+                </div>
+              </div>
+            
+            </div>
+          </div>
+
           <h4 class="mt-5" v-if="userInfo && userInfo.is_authenticated && userInfo.is_staff">Состояние книг</h4>
           <h4 class="mt-5" v-else-if="userInfo && userInfo.is_authenticated">Мои книги</h4>
+          
+          
+          <div v-if="selectedReader && userInfo && userInfo.is_authenticated && userInfo.is_staff" class="alert alert-info">
+            Показаны книги читателя: 
+            <strong>
+              {{ readers.find(r => r.id === parseInt(selectedReader))?.first_name }} 
+              {{ readers.find(r => r.id === parseInt(selectedReader))?.last_name }}
+            </strong>
+          </div>
+
             <div class="row">
-                <template v-for="item in bookItem">
+                <template v-for="item in filteredBookItems">
                 <div class="col-3 p-3 border d-flex justify-content-between align-items-center flex-wrap">{{ books.find(b => b.id === item.book)?.name || 'Книга' }}  <br> <hr>
                 
                     
@@ -249,6 +206,9 @@ async function onUpdateBookItem() {
                 
                 </template>
             </div>
+
+         
+         
         </div>
         <div v-else>
           <h2 class="mt-2">Пожалуйста, <a href="/">авторизуйтесь</a></h2>

@@ -32,7 +32,7 @@ class Genre(models.Model):
 class Book(models.Model):
     name = models.TextField("Название")
     author = models.ForeignKey(Author, on_delete=models.CASCADE, verbose_name="Автор", null=True, blank=True)
-    genres = models.ManyToManyField(Genre, verbose_name="Жанры")
+    genres = models.ForeignKey(Genre, on_delete=models.CASCADE, verbose_name="Жанры", null=True, blank=True)
     
     publication_year = models.IntegerField("Год публикации")
     description = models.TextField("Описание")
