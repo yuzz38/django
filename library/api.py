@@ -31,12 +31,12 @@ class AuthorViewSet(mixins.ListModelMixin,
 
       
         
-        # Общее количество авторов
+        
         total_authors = Author.objects.count()
         
-        # Статистика по книгам
+    
         author_stats = Author.objects.annotate(
-            book_count=Count('book')  # предполагая, что related_name='book' в модели Book
+            book_count=Count('book') 
         ).aggregate(
             count=Count("*"),
             avg_books=Avg("book_count"),
@@ -44,10 +44,9 @@ class AuthorViewSet(mixins.ListModelMixin,
             min_books=Min("book_count"),
         )
         
-        # Общее количество книг
+    
         total_books = Book.objects.count()
-        
-        # Объединяем статистику
+     
         stats = {
             'count': total_authors,
             'avg_books': author_stats['avg_books'],
@@ -80,15 +79,15 @@ class GenreViewSet(mixins.ListModelMixin,
     def get_genre_stats(self, request, *args, **kwargs):
      
         
-        # Статистика по жанрам
+        
         genre_stats = Genre.objects.annotate(
-            book_count=Count('book')  # предполагая, что related_name='book' в модели Book
+            book_count=Count('book')  
         ).order_by('-book_count')
         
         total_genres = genre_stats.count()
         total_books = Book.objects.count()
         
-        # Самый популярный жанр
+        
         most_popular = genre_stats.first()
         
         stats = {
@@ -110,6 +109,44 @@ class BookViewSet(mixins.ListModelMixin,
                  GenericViewSet):
     queryset = Book.objects.all()
     serializer_class = BookSerializer
+    class BookStatsSerializer(serializers.Serializer):
+        total_books = serializers.IntegerField()
+        avg_publication_year = serializers.FloatField()
+        oldest_book_year = serializers.IntegerField()
+        newest_book_year = serializers.IntegerField()
+        most_popular_author = serializers.CharField()
+        books_by_popular_author = serializers.IntegerField()
+  
+        
+    @action(detail=False, methods=["GET"], url_path="stats")
+    def get_book_stats(self, request, *args, **kwargs):
+        # Статистика по книгам
+        book_stats = Book.objects.aggregate(
+            total_books=Count("*"),
+            avg_publication_year=Avg("publication_year"),
+            oldest_book_year=Min("publication_year"),
+            newest_book_year=Max("publication_year"),
+        )
+        
+        # Статистика по авторам
+        author_stats = Author.objects.annotate(
+            book_count=Count('book')
+        ).order_by('-book_count').first()
+        
+  
+        
+        stats = {
+            'total_books': book_stats['total_books'],
+            'avg_publication_year': round(book_stats['avg_publication_year'], 1),
+            'oldest_book_year': book_stats['oldest_book_year'],
+            'newest_book_year': book_stats['newest_book_year'],
+            'most_popular_author': author_stats.nameAuthor,
+            'books_by_popular_author': author_stats.book_count,
+           
+        }
+        
+        serializer = self.BookStatsSerializer(instance=stats)
+        return Response(serializer.data)
   
 class UserViewSet(viewsets.GenericViewSet):
     permission_classes = []

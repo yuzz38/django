@@ -227,7 +227,7 @@ const uniqueGenres = computed(() => {
             <div class="col-6 mb-2">
                       <div class="form-floating">
                         <select class="form-select" v-model="bookToEdit.genres"> 
-                        <option :value="g.id" v-for="g in uniqueGenres" :key="g.id">
+                        <option :value="g.id" v-for="g in genre" :key="g.id">
                           {{ g.name }}
                         </option>
                       </select>

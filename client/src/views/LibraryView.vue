@@ -59,7 +59,7 @@ async function onFormSend() {
 async function handleLogout() {
     await userStore.logout();
 }
-// Вычисляемое свойство для уникальных жанров
+
 const uniqueGenres = computed(() => {
   const seen = new Set();
   return genre.value.filter(item => {
@@ -72,19 +72,24 @@ const uniqueGenres = computed(() => {
 });
 
 const showAllAuthorsModal = ref(false);
+const showAllBooksModal = ref(false);
 
 
 const paginatedAuthors = computed(() => {
   return authors.value.slice(0, 10);
 });
-
+const paginatedBooks = computed(() => {
+  return books.value.slice(0, 10);
+});
 
 
 
 function openAllAuthorsModal() {
   showAllAuthorsModal.value = true;
 }
-
+function openAllBooksModal() {
+  showAllBooksModal.value = true;
+}
 </script>
 <template>
 
@@ -127,7 +132,7 @@ function openAllAuthorsModal() {
             </div>
         </div>
         
-        <div class="card mb-4" v-if="userInfo && userInfo.is_authenticated && userInfo.is_staff">
+        <div class="card mb-4" v-if="userInfo && userInfo.is_authenticated">
             <div class="card-header bg-success text-white">
                 <h2>Жанры</h2>
             </div>
@@ -147,12 +152,15 @@ function openAllAuthorsModal() {
             </div>
         </div>
         <div class="card mb-4" v-if="userInfo && userInfo.is_authenticated">
-            <div class="card-header bg-warning">
+            <div class="card-header bg-warning d-flex justify-content-between align-items-center">
                 <h2>Книги</h2>
+                <button @click="openAllBooksModal" class="btn btn-light btn-sm">
+                    Показать все ({{ books.length }})
+                </button>
             </div>
             <div class="card-body">
                 <div class="row">
-                    <template v-for="book in books">
+                    <template v-for="book in paginatedBooks">
                         <div class="col-md-6 mb-3">
                         <div class="card">
                             <div class="card-body">
@@ -305,7 +313,51 @@ function openAllAuthorsModal() {
           </div>
         </div>
    </div>
+ <div v-if="showAllBooksModal" class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5)">
+        <div class="modal-dialog modal-xl">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Все книги ({{ books.length }})</h5>
+              <button
+                type="button"
+                class="btn-close"
+                @click="showAllBooksModal = false"
+                aria-label="Close"
+              ></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <template v-for="book in books" :key="book.id">
+                         <div class="col-md-6 mb-3">
+                            <div class="card">
+                               <div class="card-body">
+                                    <h5 class="card-title">{{ book.name }}</h5>
+                                    <p class="card-text">
+                                        <strong>Автор:</strong>   {{ authors.find(a => a.id === book.author)?.nameAuthor }} <br>
 
+                                        <strong>Год:</strong> {{ book.publication_year }}<br>
+                                    <strong>Жанр: </strong> 
+                                        {{ genre.find(g => g.id === book.genres)?.name || 'Не указан' }}
+                                    
+                                            
+                                        
+                                        <br>
+                                        <strong>Описание:</strong> {{ book.description }}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" @click="showAllBooksModal = false">
+                    Закрыть
+                </button>
+            </div>
+          </div>
+        </div>
+   </div>
 
 <div v-if="userInfo && !userInfo.is_authenticated" class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5)">
     <div class="modal-dialog modal-lg">

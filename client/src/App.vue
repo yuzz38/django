@@ -86,6 +86,9 @@ async function handleLogout() {
         <li class="nav-item">
           <router-link class="nav-link" to="/bookinstances">Экземпляры книг</router-link>
         </li>
+        <li class="nav-item">
+          <router-link class="nav-link" to="/statistic">Статистика</router-link>
+        </li>
         
       </ul>
       <ul class="navbar-nav">
