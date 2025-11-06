@@ -85,7 +85,26 @@ const uniqueGenres = computed(() => {
     return true;
   });
 });
+
+const selectedAuthor = ref(null);
+const selectedGenre = ref(null);
+
+const filteredAuthorItems = computed(() => {
+  let filtered = books.value;
+  
+
+  if (selectedAuthor.value) {
+    filtered = filtered.filter(item => item.author === selectedAuthor.value);
+  }
+  
+  if (selectedGenre.value) {
+    filtered = filtered.filter(item => item.genres === selectedGenre.value);
+  }
+  
+  return filtered;
+}); 
 </script>
+
 <template>
     <div class="border p-5" v-if="userInfo && userInfo.is_authenticated">
           <div class="mb-5" v-if="userInfo && userInfo.is_authenticated && userInfo.is_staff">
@@ -155,23 +174,51 @@ const uniqueGenres = computed(() => {
               </div>
           </form>
           </div>
+          <div class="mb-4" v-if="userInfo && userInfo.is_authenticated">
+            <div class="d-flex" style="gap: 20px;">
+              <div class="col-6">
+                <h4>Фильтр по авторам</h4>
+                <div class="form-floating">
+                  <select class="form-select" v-model="selectedAuthor">
+                    <option value="">Все авторы</option>
+                    <option :value="author.id" v-for="author in authors" :key="author.id">
+                      {{ author.nameAuthor }}
+                    </option>
+                  </select>
+                  <label for="floatingInput">Выберите автора</label>
+                </div>
+              </div>
+              <div class="col-6">
+                <h4>Фильтр по жанрам</h4>
+                <div class="form-floating">
+                  <select class="form-select" v-model="selectedGenre">
+                    <option value="">Все жанры</option>
+                    <option :value="g.id" v-for="g in uniqueGenres" :key="g.id">
+                      {{ g.name }}
+                    </option>
+                  </select>
+                  <label for="floatingInput">Выберите жанр</label>
+                </div>
+              </div>
+            </div>
+          </div>
           <div>
             <h4>Список книг</h4>
             <div class="row">
-            <template v-for="item in books">
-            <div class="col-3 p-3 border d-flex justify-content-between align-items-center flex-wrap"><div>
-              <h5>Название: </h5>{{ item.name }}
-            </div> 
+            <template v-for="item in filteredAuthorItems">
+            <div class="col-3 p-3 border d-flex justify-content-between align-items-center flex-wrap" style="position: relative;">
+              <div style="display:block; width:100%;"><h5>Название: </h5></div><div>{{ item.name }}</div>
+            
              
                  <button v-if="userInfo && userInfo.is_authenticated && userInfo.is_staff" class="btn btn-danger" @click="onRemoveClickBook(item)">
                     <i class="bi bi-x">x</i>
                 </button>
                 <div>
-               <h5>Описание: </h5>
-              <ul>
-                <li>{{ item.description }} </li>
-              </ul>
-             </div>
+                  <h5>Описание: </h5>
+                  <ul>
+                    <li>{{ item.description }} </li>
+                  </ul>
+                </div>
                 
                 <button style="flex:0 0 100%;"v-if="userInfo && userInfo.is_authenticated && userInfo.is_staff"
                     class="btn btn-success mt-2"
@@ -184,100 +231,105 @@ const uniqueGenres = computed(() => {
             </template>
         </div>
           </div>
-         </div>
-         <div v-else>
-      <h2 class="mt-2">Пожалуйста, <a href="/">авторизуйтесь</a></h2>
-    </div>
-         <div class="modal fade" id="editBookModal" tabindex="-1">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h1 class="modal-title fs-5" id="exampleModalLabel">
-           Редактировать книгу
-          </h1>
-          <button
-            type="button"
-            class="btn-close"
-            data-bs-dismiss="modal"
-            aria-label="Close"
-          ></button>
-        </div>
-        <div class="modal-body">
-          <div class="row">
-            <div class="col-6 mb-2">
-                    <div class="form-floating">
-                      <input
-                        type="text"
-                        class="form-control"
-                        v-model="bookToEdit.name"
-                      />
-                      <label for="floatingInput">Название</label>
-                    </div>
-            </div>
-            <div class="col-6 mb-2">
+          </div>
+          <div v-else>
+          <h2 class="mt-2">Пожалуйста, <a href="/">авторизуйтесь</a></h2>
+          </div>
+          <div class="modal fade" id="editBookModal" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h1 class="modal-title fs-5" id="exampleModalLabel">
+            Редактировать книгу
+            </h1>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <div class="row">
+              <div class="col-6 mb-2">
                       <div class="form-floating">
-                        <select class="form-select" v-model="bookToEdit.author">
-                          <option :value="a.id" v-for="a in authors">
-                            {{ a.nameAuthor }}
+                        <input
+                          type="text"
+                          class="form-control"
+                          v-model="bookToEdit.name"
+                        />
+                        <label for="floatingInput">Название</label>
+                      </div>
+              </div>
+              <div class="col-6 mb-2">
+                        <div class="form-floating">
+                          <select class="form-select" v-model="bookToEdit.author">
+                            <option :value="a.id" v-for="a in authors">
+                              {{ a.nameAuthor }}
+                            </option>
+                          </select>
+                          <label for="floatingInput">Автор</label>
+                        </div>
+              </div>
+              <div class="col-6 mb-2">
+                        <div class="form-floating">
+                          <select class="form-select" v-model="bookToEdit.genres"> 
+                          <option :value="g.id" v-for="g in genre" :key="g.id">
+                            {{ g.name }}
                           </option>
                         </select>
-                        <label for="floatingInput">Автор</label>
-                      </div>
-            </div>
-            <div class="col-6 mb-2">
-                      <div class="form-floating">
-                        <select class="form-select" v-model="bookToEdit.genres"> 
-                        <option :value="g.id" v-for="g in genre" :key="g.id">
-                          {{ g.name }}
-                        </option>
-                      </select>
-                        <label for="floatingInput">Жанр</label>
-                      </div>
-            </div>
-            <div class="col-6 mb-2">
-                  <div class="form-floating">
-                      <input
-                      type="number"
-                      class="form-control"
-                      v-model="bookToEdit.publication_year"
-                      required
-                      />
-                      <label for="floatingInput">Год</label>
-                  </div>
-            </div>
-            <div class="col-6 mb-2">
-                  <div class="form-floating">
-                      <input
-                      type="text"
-                      class="form-control"
-                      v-model="bookToEdit.description"
-                      required
-                      />
-                      <label for="floatingInput">Описание книги</label>
-                  </div>
+                          <label for="floatingInput">Жанр</label>
+                        </div>
+              </div>
+              <div class="col-6 mb-2">
+                    <div class="form-floating">
+                        <input
+                        type="number"
+                        class="form-control"
+                        v-model="bookToEdit.publication_year"
+                        required
+                        />
+                        <label for="floatingInput">Год</label>
+                    </div>
+              </div>
+              <div class="col-6 mb-2">
+                    <div class="form-floating">
+                        <input
+                        type="text"
+                        class="form-control"
+                        v-model="bookToEdit.description"
+                        required
+                        />
+                        <label for="floatingInput">Описание книги</label>
+                    </div>
+              </div>
             </div>
           </div>
-        </div>
-        <div class="modal-footer">
-          <button
-            type="button"
-            class="btn btn-secondary"
-            data-bs-dismiss="modal"
-          >
-            Close
-          </button>
-          <button
-            data-bs-dismiss="modal"
-            type="button"
-            class="btn btn-primary"
-            @click="onUpdateBook"
-          >
-            Сохранить
-          </button>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Close
+            </button>
+            <button
+              data-bs-dismiss="modal"
+              type="button"
+              class="btn btn-primary"
+              @click="onUpdateBook"
+            >
+              Сохранить
+            </button>
+          </div>
         </div>
       </div>
-    </div>
-</div>   
+          </div>   
 </template>
 <style scoped>
+.btn-danger {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+}
 </style>
