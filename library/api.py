@@ -1,3 +1,7 @@
+from django.http import HttpResponse
+from openpyxl import Workbook
+from openpyxl.styles import Font, Alignment
+import io
 from rest_framework.viewsets import GenericViewSet
 from rest_framework import mixins, viewsets
 from django_filters.rest_framework import DjangoFilterBackend
@@ -117,7 +121,52 @@ class BookViewSet(mixins.ListModelMixin,
         most_popular_author = serializers.CharField()
         books_by_popular_author = serializers.IntegerField()
   
+    @action(detail=False, methods=['GET'], url_path='export-excel')
+    def export_books_to_excel(self, request, *args, **kwargs):
+        books = Book.objects.all()
+       
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Книги библиотеки"
         
+        headers = ['Название', 'Автор', 'Жанр', 'Год издания', 'Описание']
+        for col, header in enumerate(headers, 1):
+            cell = ws.cell(row=1, column=col, value=header)
+            cell.font = Font(bold=True)
+            cell.alignment = Alignment(horizontal='center')
+        
+        for row, book in enumerate(books, 2):
+            ws.cell(row=row, column=1, value=book.name)
+            ws.cell(row=row, column=2, value=book.author.nameAuthor)
+            ws.cell(row=row, column=3, value=book.genres.name )
+            ws.cell(row=row, column=4, value=book.publication_year)
+            ws.cell(row=row, column=5, value=book.description)
+        
+        # размерность столбцов 
+        for column in ws.columns: 
+            max_length = 0
+            column_letter = column[0].column_letter
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 50)
+            ws.column_dimensions[column_letter].width = adjusted_width
+        
+        buffer = io.BytesIO()
+        wb.save(buffer)
+        buffer.seek(0)
+        
+        response = HttpResponse(
+            buffer.getvalue(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = 'attachment; filename="library_books.xlsx"'
+        
+        return response
+     
     @action(detail=False, methods=["GET"], url_path="stats")
     def get_book_stats(self, request, *args, **kwargs):
         # Статистика по книгам
@@ -148,6 +197,8 @@ class BookViewSet(mixins.ListModelMixin,
         serializer = self.BookStatsSerializer(instance=stats)
         return Response(serializer.data)
   
+
+  
 class UserViewSet(viewsets.GenericViewSet):
     permission_classes = []
 
@@ -167,6 +218,8 @@ class UserViewSet(viewsets.GenericViewSet):
 
         user = authenticate(username=username, password=password)
         if user is not None:
+            self.request.session['double_succes'] = True 
+            # нужно сделать двойную аунтефикацию чтобы при редактировании обьектов или удалении вызывалось модальное окно и просило ввести код типо 223 и он сверяет этот код с кодом который хранится в отдельном action и выводит в console.log что пройдена двойная аунтефикация 
             login(request, user)
 
             return Response({
@@ -176,12 +229,15 @@ class UserViewSet(viewsets.GenericViewSet):
         return Response({
             'success': False,
         })
+    
     @action(detail=False, url_path="logout", methods=["POST"])
     def logout_user(self, request, *args, **kwargs):
         logout(request)
         return Response({
             'success': True,
         }, status=status.HTTP_200_OK)
+    
+
 class ReaderViewSet(mixins.ListModelMixin, 
                    mixins.CreateModelMixin, 
                    mixins.RetrieveModelMixin,

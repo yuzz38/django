@@ -52,6 +52,7 @@ class Reader(models.Model):
     card_number = models.CharField("Номер читательского билета")
     user = models.OneToOneField("auth.User", on_delete=models.CASCADE, null=True)
     picture = models.ImageField("Фото", null=True, upload_to="library_img")
+    
     def __str__(self) -> str:
         return f"{self.first_name} {self.last_name}"
 

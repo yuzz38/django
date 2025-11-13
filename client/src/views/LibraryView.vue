@@ -90,6 +90,26 @@ function openAllAuthorsModal() {
 function openAllBooksModal() {
   showAllBooksModal.value = true;
 }
+
+
+async function exportBooksToExcel() {
+        const response = await axios.get('/api/books/export-excel/', {
+            responseType: 'blob' 
+        });
+        
+        // Создаем ссылку для скачивания
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', 'library_books.xlsx');
+        document.body.appendChild(link);
+        link.click();
+        
+        link.remove();
+        window.URL.revokeObjectURL(url);
+        
+    
+}
 </script>
 <template>
 
@@ -154,9 +174,14 @@ function openAllBooksModal() {
         <div class="card mb-4" v-if="userInfo && userInfo.is_authenticated">
             <div class="card-header bg-warning d-flex justify-content-between align-items-center">
                 <h2>Книги</h2>
-                <button @click="openAllBooksModal" class="btn btn-light btn-sm">
+                <div>
+                    <button @click="openAllBooksModal" class="btn btn-light btn-sm">
                     Показать все ({{ books.length }})
                 </button>
+                <button @click="exportBooksToExcel" class="btn btn-success btn-sm me-2" style="margin-left:20px">
+                    <i class="bi bi-file-earmark-excel"></i> Экспорт в Excel
+                </button>
+                </div>
             </div>
             <div class="card-body">
                 <div class="row">
