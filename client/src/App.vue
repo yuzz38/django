@@ -86,7 +86,7 @@ async function handleLogout() {
         <li class="nav-item">
           <router-link class="nav-link" to="/bookinstances">Экземпляры книг</router-link>
         </li>
-        <li class="nav-item">
+        <li v-if="userInfo && userInfo.is_authenticated && userInfo.is_staff" class="nav-item" >
           <router-link class="nav-link" to="/statistic">Статистика</router-link>
         </li>
         

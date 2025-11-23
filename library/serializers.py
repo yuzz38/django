@@ -25,3 +25,7 @@ class BookInstanceSerializer(serializers.ModelSerializer):
     class Meta:
         model = BookInstance
         fields = ['id', 'book', 'status', 'due_back', 'borrower']
+class BookInstanceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BookInstance
+        fields = ['id', 'book', 'status', 'due_back', 'borrower']

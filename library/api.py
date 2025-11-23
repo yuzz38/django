@@ -2,6 +2,10 @@ from django.http import HttpResponse
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment
 import io
+from rest_framework import status
+from django.utils import timezone
+from datetime import timedelta
+import random
 from rest_framework.viewsets import GenericViewSet
 from rest_framework import mixins, viewsets
 from django_filters.rest_framework import DjangoFilterBackend
@@ -23,6 +27,10 @@ class AuthorViewSet(mixins.ListModelMixin,
                    GenericViewSet):
     queryset = Author.objects.all()
     serializer_class = AuthorSerializer
+    def get_permissions(self):
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            return [permissions.IsAuthenticated(), IsDoubleFAVerified()]
+        return [permissions.IsAuthenticated()]
     class StatsSerializer(serializers.Serializer):
         count = serializers.IntegerField()
         avg_books = serializers.FloatField()
@@ -32,13 +40,9 @@ class AuthorViewSet(mixins.ListModelMixin,
         
     @action(detail=False, methods=["GET"], url_path="stats")
     def get_stats(self, request, *args, **kwargs):
-
-      
-        
-        
+ 
         total_authors = Author.objects.count()
         
-    
         author_stats = Author.objects.annotate(
             book_count=Count('book') 
         ).aggregate(
@@ -48,7 +52,7 @@ class AuthorViewSet(mixins.ListModelMixin,
             min_books=Min("book_count"),
         )
         
-    
+
         total_books = Book.objects.count()
      
         stats = {
@@ -72,6 +76,10 @@ class GenreViewSet(mixins.ListModelMixin,
                   GenericViewSet):
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
+    def get_permissions(self):
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            return [permissions.IsAuthenticated(), IsDoubleFAVerified()]
+        return [permissions.IsAuthenticated()]
     class GenreStatsSerializer(serializers.Serializer):
         total_genres = serializers.IntegerField()
         total_books = serializers.IntegerField()
@@ -113,6 +121,10 @@ class BookViewSet(mixins.ListModelMixin,
                  GenericViewSet):
     queryset = Book.objects.all()
     serializer_class = BookSerializer
+    def get_permissions(self):
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            return [permissions.IsAuthenticated(), IsDoubleFAVerified()]
+        return [permissions.IsAuthenticated()]
     class BookStatsSerializer(serializers.Serializer):
         total_books = serializers.IntegerField()
         avg_publication_year = serializers.FloatField()
@@ -198,17 +210,45 @@ class BookViewSet(mixins.ListModelMixin,
         return Response(serializer.data)
   
 
-  
+class IsDoubleFAVerified(permissions.BasePermission):
+    
+    
+    def has_permission(self, request, view):
+        if not request.user.is_authenticated:
+            return False
+            
+        is_doublefaq = request.session.get('doublefaq_active', False)
+        doublefaq_expires = request.session.get('doublefaq_expires')
+        
+        # Проверяем активна ли 2FA и не истекла ли
+        if is_doublefaq and doublefaq_expires:
+            if timezone.now().timestamp() > doublefaq_expires:
+                request.session['doublefaq_active'] = False
+                return False
+            return True
+        
+        return False
+      
 class UserViewSet(viewsets.GenericViewSet):
     permission_classes = []
 
     @action(detail=False, url_path="info", methods=["GET"])
     def get_info(self, request, *args, **kwargs):
+        # Проверяем 2FA статус из сессии
+        is_doublefaq = request.session.get('doublefaq_active', False)
+        doublefaq_expires = request.session.get('doublefaq_expires')
+        
+        # Проверяем не истекла ли сессия 2FA
+        if is_doublefaq and doublefaq_expires:
+            if timezone.now().timestamp() > doublefaq_expires:
+                is_doublefaq = False
+                request.session['doublefaq_active'] = False
+        
         return Response({
             "username": request.user.username,
             "is_authenticated": request.user.is_authenticated,
-           
             "is_staff": request.user.is_staff,
+            "is_doublefaq": is_doublefaq,
         })
 
     @action(detail=False, url_path="login", methods=["POST"])
@@ -218,10 +258,7 @@ class UserViewSet(viewsets.GenericViewSet):
 
         user = authenticate(username=username, password=password)
         if user is not None:
-            self.request.session['double_succes'] = True 
-            # нужно сделать двойную аунтефикацию чтобы при редактировании обьектов или удалении вызывалось модальное окно и просило ввести код типо 223 и он сверяет этот код с кодом который хранится в отдельном action и выводит в console.log что пройдена двойная аунтефикация 
             login(request, user)
-
             return Response({
                 'success': True,
             })
@@ -230,12 +267,69 @@ class UserViewSet(viewsets.GenericViewSet):
             'success': False,
         })
     
+    @action(detail=False, url_path="generate-2fa", methods=["POST"])
+    def generate_2fa(self, request, *args, **kwargs):
+        
+        faq_code = str(random.randint(100000, 999999))
+        
+        
+        request.session['faq_code'] = faq_code
+        request.session['faq_code_expires'] = (timezone.now() + timedelta(minutes=5)).timestamp()
+        
+        
+        print(f"2FA Code for {request.user.username}: {faq_code}")
+        print(f"Код действителен до: {timezone.now() + timedelta(minutes=5)}")
+        
+        return Response({
+            'success': True,
+            'message': 'Код 2FA сгенерирован'
+        })
+    
+    @action(detail=False, url_path="verify-2fa", methods=["POST"])
+    def verify_2fa(self, request, *args, **kwargs):
+     
+        
+        code = request.data.get('code', '')
+        stored_code = request.session.get('faq_code')
+        code_expires = request.session.get('faq_code_expires')
+        
+        # Проверяем существование и срок кода
+     
+        
+        if timezone.now().timestamp() > code_expires:
+            return Response({
+                'success': False,
+                'message': 'Код истек, запросите новый'
+            })
+        
+        if code == stored_code:
+            # Устанавливаем 2FA сессию на 1 минуту
+            request.session['doublefaq_active'] = True
+            request.session['doublefaq_expires'] = (timezone.now() + timedelta(minutes=1)).timestamp()
+            
+            # Очищаем использованный код
+            del request.session['faq_code']
+            del request.session['faq_code_expires']
+            
+            return Response({
+                'success': True,
+                'message': 'Двухфакторная аутентификация пройдена'
+            })
+        else:
+            return Response({
+                'success': False,
+                'message': 'Неверный код'
+            })
+    
     @action(detail=False, url_path="logout", methods=["POST"])
     def logout_user(self, request, *args, **kwargs):
+        # Очищаем все сессии
+        request.session.flush()
         logout(request)
         return Response({
             'success': True,
         }, status=status.HTTP_200_OK)
+
     
 
 class ReaderViewSet(mixins.ListModelMixin, 
@@ -246,6 +340,10 @@ class ReaderViewSet(mixins.ListModelMixin,
                    GenericViewSet):
     queryset = Reader.objects.all()
     serializer_class = ReaderSerializer
+    def get_permissions(self):
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            return [permissions.IsAuthenticated(), IsDoubleFAVerified()]
+        return [permissions.IsAuthenticated()]
     def get_queryset(self):
         qs = super().get_queryset()
         
@@ -265,6 +363,10 @@ class BookInstanceViewSet(mixins.ListModelMixin,
                          GenericViewSet):
     queryset = BookInstance.objects.all()
     serializer_class = BookInstanceSerializer
+    def get_permissions(self):
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            return [permissions.IsAuthenticated(), IsDoubleFAVerified()]
+        return [permissions.IsAuthenticated()]
 
     
     def get_queryset(self):

@@ -72,8 +72,14 @@ const authorToEdit = ref({});
 
 
 async function onRemoveClickAuthor(author) {
-  await axios.delete(`/api/authors/${author.id}/`);
+  if (!userInfo.value.is_doublefaq) {
+        alert('Для редактирования требуется двухфакторная аутентификация. Нажмите кнопку "Войти по второму фактору" на главной странице.');
+        return;
+    }
+  else {
+    await axios.delete(`/api/authors/${author.id}/`);
   await fetchAuthor(); // переподтягиваю
+  }
 }
 
 const authorEditPictureRef = ref();

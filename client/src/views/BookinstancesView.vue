@@ -63,8 +63,14 @@ async function onBookAddItem() {
 }
 
 async function onRemoveClickBookItem(bookItem) {
-  await axios.delete(`/api/bookinstances/${bookItem.id}/`);
+  if (!userInfo.value.is_doublefaq) {
+        alert('Для редактирования требуется двухфакторная аутентификация. Нажмите кнопку "Войти по второму фактору" на главной странице.');
+        return;
+    }
+  else {
+    await axios.delete(`/api/bookinstances/${bookItem.id}/`);
   await fetchBookItem(); // переподтягиваю
+  }
 }
 
 

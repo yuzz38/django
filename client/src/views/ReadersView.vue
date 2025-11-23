@@ -72,8 +72,14 @@ async function onReaderAdd() {
   await fetchReaders(); // переподтягиваю
 }
 async function onRemoveClick(reader) {
-  await axios.delete(`/api/readers/${reader.id}/`);
-  await fetchReaders(); // переподтягиваю
+  if (!userInfo.value.is_doublefaq) {
+        alert('Для редактирования требуется двухфакторная аутентификация. Нажмите кнопку "Войти по второму фактору" на главной странице.');
+        return;
+    }
+  else {
+    await axios.delete(`/api/readers/${reader.id}/`);
+    await fetchReaders(); // переподтягиваю
+  }
 }
 const readerToEdit = ref({});
 

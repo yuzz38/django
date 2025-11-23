@@ -58,8 +58,14 @@ async function onGenreAdd() {
 
 
 async function onRemoveClickGenre(genre) {
-  await axios.delete(`/api/genres/${genre.id}/`);
+   if (!userInfo.value.is_doublefaq) {
+        alert('Для редактирования требуется двухфакторная аутентификация. Нажмите кнопку "Войти по второму фактору" на главной странице.');
+        return;
+    }
+  else {
+    await axios.delete(`/api/genres/${genre.id}/`);
   await fetchGenre(); // переподтягиваю
+  }
 }
 
 
