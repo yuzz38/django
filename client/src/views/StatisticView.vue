@@ -1,13 +1,12 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onBeforeMount } from 'vue'
 import axios from 'axios'
 import {useUserStore} from '@/stores/user_store';
 import {storeToRefs} from "pinia";
 const bookStats = ref(null)
 const authorStats = ref(null)
 const genreStats = ref(null)
-const loading = ref(false)
-const error = ref(null)
+const userStore = useUserStore()
 
 async function loadBookStats() {
     const response = await axios.get('/api/books/stats/')
@@ -24,19 +23,11 @@ async function loadGenreStats() {
     genreStats.value = response.data
 }
 
-async function loadAllStats() {
-  await Promise.all([
-      loadBookStats(),
-      loadAuthorStats(),
-      loadGenreStats()
-    ])
-}
-
-onMounted(() => {
-  loadAllStats()
+onBeforeMount(async () => {
+    loadBookStats(),
+    loadAuthorStats(),
+    loadGenreStats()
 })
-const userStore = useUserStore()
-
 const {
     userInfo,
 } = storeToRefs(userStore)

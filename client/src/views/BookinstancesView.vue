@@ -1,6 +1,5 @@
 <script setup>
 import axios from 'axios';
-import Cookies from 'js-cookie';
 import {computed, onBeforeMount, ref} from 'vue';
 import {useUserStore} from '@/stores/user_store';
 import {storeToRefs} from "pinia";
@@ -15,9 +14,8 @@ const genre = ref([]);
 const authors = ref([]);
 const bookItem = ref([]);
 const selectedReader = ref(null); 
-onBeforeMount(() => {
-  axios.defaults.headers.common['X-CSRFToken'] = Cookies.get("csrftoken");
-})
+const booksToAddItem = ref({});
+const bookToEditItem = ref({});
 async function fetchReaders() {
     const l = await axios.get("/api/readers");
     readers.value = l.data    
@@ -52,16 +50,12 @@ const filteredBookItems = computed(() => {
   }
   return bookItem.value.filter(item => item.borrower === parseInt(selectedReader.value));
 });
-
-const booksToAddItem = ref({});
-
 async function onBookAddItem() {
   await axios.post("/api/bookinstances/", {
     ...booksToAddItem.value,
   });
   await fetchBookItem(); // переподтягиваю
 }
-
 async function onRemoveClickBookItem(bookItem) {
   if (!userInfo.value.is_doublefaq) {
         alert('Для редактирования требуется двухфакторная аутентификация. Нажмите кнопку "Войти по второму фактору" на главной странице.');
@@ -73,12 +67,6 @@ async function onRemoveClickBookItem(bookItem) {
   }
 }
 
-
-
-
-
-
-const bookToEditItem = ref({});
 async function onBookEditClickItem(book) {
   bookToEditItem.value = { ...book };
 }

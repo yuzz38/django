@@ -1,74 +1,42 @@
 <script setup>
 import axios from 'axios';
-import Cookies from 'js-cookie';
-import {computed, onBeforeMount, ref} from 'vue';
+import {onBeforeMount, ref} from 'vue';
 import {useUserStore} from '@/stores/user_store';
 import {storeToRefs} from "pinia";
 const userStore = useUserStore()
+const readers = ref([]);
+const readerToAdd = ref({});
+const readerPictureRef = ref();
+const readerImageUrl = ref();
+const readerToEdit = ref({});
+const readerEditPictureRef = ref();
+const readerEditImageUrl = ref();
 
 const {
     userInfo,
 } = storeToRefs(userStore)
-const readers = ref([]);
-const books = ref([]);
-const genre = ref([]);
-const authors = ref([]);
-const bookItem = ref([]);
-onBeforeMount(() => {
-  axios.defaults.headers.common['X-CSRFToken'] = Cookies.get("csrftoken");
-})
+
 async function fetchReaders() {
     const l = await axios.get("/api/readers");
     readers.value = l.data    
 }
-async function fetchBooks() {
-    const l = await axios.get("/api/books");
-    books.value = l.data    
-}
-async function fetchGenre() {
-    const l = await axios.get("/api/genres");
-    genre.value = l.data    
-}
-async function fetchAuthor() {
-    const l = await axios.get("/api/authors");
-    authors.value = l.data    
-}
-async function fetchBookItem() {
-    const l = await axios.get("/api/bookinstances");
-    bookItem.value = l.data    
-}
 onBeforeMount(async () => {
-    await fetchReaders()
-    await fetchBooks()
-    await fetchGenre()
-    await fetchAuthor()
-    await fetchBookItem()
+  fetchReaders()
 })
 
-const readerToAdd = ref({});
-
-
-const readerPictureRef = ref();
-const readerImageUrl = ref();
 async function readerAddPictureChange() {
   readerImageUrl.value = URL.createObjectURL(readerPictureRef.value.files[0])
 }
 async function onReaderAdd() {
   const formData = new FormData();
-  
   formData.set('first_name', readerToAdd.value.first_name);
   formData.set('last_name', readerToAdd.value.last_name);
   formData.set('email', readerToAdd.value.email);
   formData.set('card_number', readerToAdd.value.card_number);
- 
   if (readerPictureRef.value.files[0]) {
      formData.append('picture', readerPictureRef.value.files[0]);
   }
-  await axios.post("/api/readers/",formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data'
-    }
-  });
+  await axios.post("/api/readers/",formData);
   await fetchReaders(); // переподтягиваю
 }
 async function onRemoveClick(reader) {
@@ -81,11 +49,7 @@ async function onRemoveClick(reader) {
     await fetchReaders(); // переподтягиваю
   }
 }
-const readerToEdit = ref({});
 
-
-const readerEditPictureRef = ref();
-const readerEditImageUrl = ref();
 async function readerEditPictureChange() {
   if (readerEditPictureRef.value.files[0]) {
     readerEditImageUrl.value = URL.createObjectURL(readerEditPictureRef.value.files[0])
@@ -94,12 +58,9 @@ async function readerEditPictureChange() {
 async function onReaderEditClick(reader) {
   readerToEdit.value = { ...reader };
   readerEditImageUrl.value = null; 
- 
 }
 async function onUpdateReader() {
   const formData = new FormData();
-  
-  
   if (readerEditPictureRef.value.files[0]) {
     formData.append('picture', readerEditPictureRef.value.files[0]);
   }
@@ -107,14 +68,7 @@ async function onUpdateReader() {
   formData.set('last_name', readerToEdit.value.last_name);
   formData.set('email', readerToEdit.value.email);
   formData.set('card_number', readerToEdit.value.card_number);
-
-  
-  await axios.put(`/api/readers/${readerToEdit.value.id}/`, formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data'
-    }
-  });
-  
+  await axios.put(`/api/readers/${readerToEdit.value.id}/`, formData);
   await fetchReaders();
 
 }

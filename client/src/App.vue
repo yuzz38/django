@@ -12,9 +12,6 @@ const genre = ref([]);
 const authors = ref([]);
 const bookItem = ref([]);
 
-onBeforeMount(() => {
-  axios.defaults.headers.common['X-CSRFToken'] = Cookies.get("csrftoken");
-})
 async function fetchReaders() {
     const l = await axios.get("/api/readers");
     readers.value = l.data    
@@ -44,19 +41,18 @@ onBeforeMount(async () => {
 })
 const userStore = useUserStore()
 
-const username = ref();
-const password = ref();
 const {
     userInfo,
 } = storeToRefs(userStore)
-async function onFormSend() {
-    userStore.login(username.value, password.value)
-}
+
 async function handleLogout() {
     await userStore.logout();
 }
-
+onBeforeMount(() => {
+  axios.defaults.headers.common['X-CSRFToken'] = Cookies.get("csrftoken");
+})
 </script>
+
 <template>
 
   <nav class="navbar navbar-expand-lg bg-body-tertiary">
@@ -113,5 +109,6 @@ async function handleLogout() {
   </div>
 
 </template>
+
 <style scoped>
 </style>

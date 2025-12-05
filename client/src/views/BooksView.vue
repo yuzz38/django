@@ -1,26 +1,17 @@
 <script setup>
 import axios from 'axios';
-import Cookies from 'js-cookie';
 import {computed, onBeforeMount, ref} from 'vue';
 import {useUserStore} from '@/stores/user_store';
 import {storeToRefs} from "pinia";
 const userStore = useUserStore()
-
-const {
-    userInfo,
-} = storeToRefs(userStore)
-const readers = ref([]);
 const books = ref([]);
 const genre = ref([]);
 const authors = ref([]);
-const bookItem = ref([]);
-onBeforeMount(() => {
-  axios.defaults.headers.common['X-CSRFToken'] = Cookies.get("csrftoken");
-})
-async function fetchReaders() {
-    const l = await axios.get("/api/readers");
-    readers.value = l.data    
-}
+const booksToAdd = ref({});
+const bookToEdit = ref({});
+const selectedAuthor = ref(null);
+const selectedGenre = ref(null);
+
 async function fetchBooks() {
     const l = await axios.get("/api/books");
     books.value = l.data    
@@ -33,23 +24,16 @@ async function fetchAuthor() {
     const l = await axios.get("/api/authors");
     authors.value = l.data    
 }
-async function fetchBookItem() {
-    const l = await axios.get("/api/bookinstances");
-    bookItem.value = l.data    
-}
-onBeforeMount(async () => {
-    await fetchReaders()
-    await fetchBooks()
-    await fetchGenre()
-    await fetchAuthor()
-    await fetchBookItem()
-})
 
-const readerToAdd = ref({});
-const genreToAdd = ref({});
-const authorToAdd = ref({});
-const booksToAdd = ref({});
-const booksToAddItem = ref({});
+const {
+    userInfo,
+} = storeToRefs(userStore)
+
+onBeforeMount(async () => {
+    fetchBooks()
+    fetchGenre()
+    fetchAuthor()
+})
 
 async function onBookAdd() {
   await axios.post("/api/books/", {
@@ -59,18 +43,16 @@ async function onBookAdd() {
 }
 
 async function onRemoveClickBook(book) {
-   if (!userInfo.value.is_doublefaq) {
+  if (!userInfo.value.is_doublefaq) {
         alert('Для редактирования требуется двухфакторная аутентификация. Нажмите кнопку "Войти по второму фактору" на главной странице.');
         return;
     }
   else {
     await axios.delete(`/api/books/${book.id}/`);
-  await fetchBooks(); // переподтягиваю
+    await fetchBooks(); // переподтягиваю
   }
 }
 
-
-const bookToEdit = ref({});
 async function onBookEditClick(book) {
   bookToEdit.value = { ...book };
 }
@@ -92,21 +74,14 @@ const uniqueGenres = computed(() => {
   });
 });
 
-const selectedAuthor = ref(null);
-const selectedGenre = ref(null);
-
 const filteredAuthorItems = computed(() => {
   let filtered = books.value;
-  
-
   if (selectedAuthor.value) {
     filtered = filtered.filter(item => item.author === selectedAuthor.value);
   }
-  
   if (selectedGenre.value) {
     filtered = filtered.filter(item => item.genres === selectedGenre.value);
   }
-  
   return filtered;
 }); 
 </script>

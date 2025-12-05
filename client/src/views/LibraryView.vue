@@ -1,6 +1,5 @@
 <script setup>
 import axios from 'axios';
-import Cookies from 'js-cookie';
 import {computed, onBeforeMount, ref} from 'vue';
 import {useUserStore} from '@/stores/user_store';
 import {storeToRefs} from "pinia";
@@ -9,9 +8,12 @@ const books = ref([]);
 const genre = ref([]);
 const authors = ref([]);
 const bookItem = ref([]);
-onBeforeMount(() => {
-  axios.defaults.headers.common['X-CSRFToken'] = Cookies.get("csrftoken");
-})
+const showImageModal = ref(false);
+const currentImageUrl = ref('');
+const userStore = useUserStore()
+const username = ref();
+const password = ref();
+
 async function fetchReaders() {
     const l = await axios.get("/api/readers");
     readers.value = l.data    
@@ -39,28 +41,16 @@ onBeforeMount(async () => {
     await fetchAuthor()
     await fetchBookItem()
 })
-const showImageModal = ref(false);
-const currentImageUrl = ref('');
 function openImageModal(imageUrl) {
   currentImageUrl.value = imageUrl;
   showImageModal.value = true;
 }
-
-const userStore = useUserStore()
-
-const username = ref();
-const password = ref();
-
 const {
     userInfo,
 } = storeToRefs(userStore)
 async function onFormSend() {
     userStore.login(username.value, password.value)
 }
-async function handleLogout() {
-    await userStore.logout();
-}
-
 const uniqueGenres = computed(() => {
   const seen = new Set();
   return genre.value.filter(item => {
@@ -98,7 +88,7 @@ async function exportBooksToExcel() {
             responseType: 'blob' 
         });
         
-        // Создаем ссылку для скачивания
+   
         const url = window.URL.createObjectURL(new Blob([response.data]));
         const link = document.createElement('a');
         link.href = url;
@@ -112,25 +102,19 @@ async function exportBooksToExcel() {
     
 }
 
-const twoFACode = ref(''); // Код для модального окна 2FA
+const twoFACode = ref(''); 
 const show2FAModal = ref(false);
-const twoFAMessage = ref('');
-// Функции для 2FA модального окна
+
 function open2FAModal() {
     userStore.generate2FACode();
     twoFACode.value = '';
-    twoFAMessage.value = 'Код сгенерирован! Проверьте консоль браузера.';
+    
     show2FAModal.value = true;
 }
-
-function verify2FA() {
-    if (userStore.verify2FACode(twoFACode.value)) {
-        twoFAMessage.value = 'Двухфакторная аутентификация успешно пройдена!';
-        setTimeout(() => {
-            show2FAModal.value = false;
-        }, 2000);
-    } else {
-        twoFAMessage.value = 'Неверный код. Попробуйте снова.';
+async function verify2FA() {
+    const result = await userStore.verify2FACode(twoFACode.value);
+    if (result && result.success) {
+        show2FAModal.value = false;
     }
 }
 </script>

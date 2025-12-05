@@ -85,21 +85,20 @@ class BookInstance(models.Model):
 @receiver(post_save, sender=Reader)
 def create_user_for_reader(sender, instance, created, **kwargs):
     if created:
-        # Формируем username и пароль из имени и фамилии
+        
         username = f"{instance.first_name}_{instance.last_name}"
         
         try:
-            # Создаем пользователя с паролем = username
+            
             user = User.objects.create_user(
                 username=username,
                 email=instance.email,
-                password=username,  # Пароль = username (Имя_Фамилия)
+                password=username, 
                 first_name=instance.first_name,
                 last_name=instance.last_name
             )
             
           
-            # Сохраняем связь
             instance.user = user
             instance.save()
             
@@ -111,12 +110,12 @@ def create_user_for_reader(sender, instance, created, **kwargs):
 def update_user_for_reader(sender, instance, created, **kwargs):
     if not created and instance.user:  
         try:
-            # Обновляем данные пользователя
+          
             instance.user.first_name = instance.first_name
             instance.user.last_name = instance.last_name
             instance.user.email = instance.email
             
-            # Обновляем username
+            
             new_username = f"{instance.first_name}_{instance.last_name}"
             if instance.user.username != new_username:
                 instance.user.username = new_username
@@ -126,11 +125,13 @@ def update_user_for_reader(sender, instance, created, **kwargs):
             
         except Exception as e:
             print(f"Ошибка при обновлении пользователя: {e}")
+
+            
 @receiver(post_delete, sender=Reader)
 def delete_user_for_reader(sender, instance, **kwargs):
 
     try:
-        # Ищем пользователя по email
+        
         if instance.email:
             user = User.objects.filter(email=instance.email).first()
             if user:
