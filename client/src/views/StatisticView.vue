@@ -7,7 +7,9 @@ const bookStats = ref(null)
 const authorStats = ref(null)
 const genreStats = ref(null)
 const userStore = useUserStore()
-
+const {
+    userInfo,
+} = storeToRefs(userStore)
 async function loadBookStats() {
     const response = await axios.get('/api/books/stats/')
     bookStats.value = response.data
@@ -28,9 +30,7 @@ onBeforeMount(async () => {
     loadAuthorStats(),
     loadGenreStats()
 })
-const {
-    userInfo,
-} = storeToRefs(userStore)
+
 
 </script>
 <template>

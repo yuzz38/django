@@ -1,39 +1,35 @@
 <script setup>
 import axios from 'axios';
-import {computed, onBeforeMount, ref} from 'vue';
+import {onBeforeMount, ref} from 'vue';
 import {useUserStore} from '@/stores/user_store';
+import { useDataStore } from '@/stores/data_store';
 import {storeToRefs} from "pinia";
 const userStore = useUserStore()
-const genre = ref([]);
+const dataStore = useDataStore();
+
 const genreToAdd = ref({});
 const genreToEdit = ref({});
-async function fetchGenre() {
-    const l = await axios.get("/api/genres");
-    genre.value = l.data    
-}
-const {
-    userInfo,
-} = storeToRefs(userStore)
+
+const {userInfo} = storeToRefs(userStore)
+const { genres } = storeToRefs(dataStore);
 onBeforeMount(async () => {
-    fetchGenre()
+  dataStore.fetchGenres()
 })
 
 async function onGenreAdd() {
   await axios.post("/api/genres/", {
     ...genreToAdd.value,
   });
-  await fetchGenre(); // переподтягиваю
+  await dataStore.fetchGenres(); // переподтягиваю
 }
 
 async function onRemoveClickGenre(genre) {
-   if (!userInfo.value.is_doublefaq) {
+  if (userInfo.value.is_staff && !userInfo.value.second) {
         alert('Для редактирования требуется двухфакторная аутентификация. Нажмите кнопку "Войти по второму фактору" на главной странице.');
         return;
     }
-  else {
-    await axios.delete(`/api/genres/${genre.id}/`);
-    await fetchGenre(); // переподтягиваю
-  }
+   await axios.delete(`/api/genres/${genre.id}/`);
+    await dataStore.fetchGenres(); // переподтягиваю
 }
 
 async function onGenreEditClick(genre) {
@@ -43,13 +39,8 @@ async function onUpdateGenre() {
   await axios.put(`/api/genres/${genreToEdit.value.id}/`, {
     ...genreToEdit.value,
   });
-  await fetchGenre();
+  await dataStore.fetchGenres();
 }
-
-
-
-
-
 </script>
 <template>
   <div class="border p-5" v-if="userInfo && userInfo.is_authenticated">
@@ -92,7 +83,7 @@ async function onUpdateGenre() {
          </div>
           <h4>Список жанров</h4>
         <div class="row">
-            <template v-for="item in genre">
+            <template v-for="item in genres">
             <div class="col-3 p-3 border d-flex justify-content-between align-items-center flex-wrap">{{ item.name }} 
                 
                  <button v-if="userInfo && userInfo.is_authenticated && userInfo.is_staff" class="btn btn-danger" @click="onRemoveClickGenre(item)">

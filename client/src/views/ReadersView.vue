@@ -2,9 +2,11 @@
 import axios from 'axios';
 import {onBeforeMount, ref} from 'vue';
 import {useUserStore} from '@/stores/user_store';
+import { useDataStore } from '@/stores/data_store';
 import {storeToRefs} from "pinia";
 const userStore = useUserStore()
-const readers = ref([]);
+const dataStore = useDataStore();
+
 const readerToAdd = ref({});
 const readerPictureRef = ref();
 const readerImageUrl = ref();
@@ -12,18 +14,12 @@ const readerToEdit = ref({});
 const readerEditPictureRef = ref();
 const readerEditImageUrl = ref();
 
-const {
-    userInfo,
-} = storeToRefs(userStore)
+const {userInfo} = storeToRefs(userStore)
+const {readers } = storeToRefs(dataStore);
 
-async function fetchReaders() {
-    const l = await axios.get("/api/readers");
-    readers.value = l.data    
-}
 onBeforeMount(async () => {
-  fetchReaders()
+  dataStore.fetchReaders()
 })
-
 async function readerAddPictureChange() {
   readerImageUrl.value = URL.createObjectURL(readerPictureRef.value.files[0])
 }
@@ -37,17 +33,15 @@ async function onReaderAdd() {
      formData.append('picture', readerPictureRef.value.files[0]);
   }
   await axios.post("/api/readers/",formData);
-  await fetchReaders(); // переподтягиваю
+  await dataStore.fetchReaders(); // переподтягиваю
 }
 async function onRemoveClick(reader) {
-  if (!userInfo.value.is_doublefaq) {
+  if (userInfo.value.is_staff && !userInfo.value.second) {
         alert('Для редактирования требуется двухфакторная аутентификация. Нажмите кнопку "Войти по второму фактору" на главной странице.');
         return;
     }
-  else {
-    await axios.delete(`/api/readers/${reader.id}/`);
-    await fetchReaders(); // переподтягиваю
-  }
+  await axios.delete(`/api/readers/${reader.id}/`);
+  await dataStore.fetchReaders(); // переподтягиваю
 }
 
 async function readerEditPictureChange() {
@@ -69,7 +63,7 @@ async function onUpdateReader() {
   formData.set('email', readerToEdit.value.email);
   formData.set('card_number', readerToEdit.value.card_number);
   await axios.put(`/api/readers/${readerToEdit.value.id}/`, formData);
-  await fetchReaders();
+  await dataStore.fetchReaders();
 
 }
 

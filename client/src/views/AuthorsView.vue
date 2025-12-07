@@ -2,25 +2,24 @@
 import axios from 'axios';
 import {computed, onBeforeMount, ref} from 'vue';
 import {useUserStore} from '@/stores/user_store';
+import { useDataStore } from '@/stores/data_store';
 import {storeToRefs} from "pinia";
 const userStore = useUserStore()
-const authors = ref([]);
+const dataStore = useDataStore();
+
 const authorToAdd = ref({});
 const authorPictureRef = ref();
 const authorImageUrl = ref();
 const authorToEdit = ref({});
 const authorEditPictureRef = ref();
 const authorEditImageUrl = ref();
-const {
-    userInfo,
-} = storeToRefs(userStore)
 
-async function fetchAuthor() {
-    const l = await axios.get("/api/authors");
-    authors.value = l.data    
-}
+const {userInfo} = storeToRefs(userStore)
+const { authors } = storeToRefs(dataStore);
+
 onBeforeMount(async () => {
-    fetchAuthor()
+    dataStore.fetchAuthors();
+    
 })
 
 async function authorAddPictureChange() {
@@ -32,18 +31,15 @@ async function onAuthorAdd() {
   formData.set('nameAuthor', authorToAdd.value.nameAuthor);
   formData.set('bio', authorToAdd.value.bio)
   await axios.post("/api/authors/",formData);
-  
-  await fetchAuthor(); // переподтягиваю
+  await dataStore.fetchAuthors(); // переподтягиваю
 }
 async function onRemoveClickAuthor(author) {
-  if (!userInfo.value.is_doublefaq) {
+  if (userInfo.value.is_staff && !userInfo.value.second) {
         alert('Для редактирования требуется двухфакторная аутентификация. Нажмите кнопку "Войти по второму фактору" на главной странице.');
         return;
     }
-  else {
     await axios.delete(`/api/authors/${author.id}/`);
-  await fetchAuthor(); // переподтягиваю
-  }
+    await dataStore.fetchAuthors(); // переподтягиваю
 }
 async function authorEditPictureChange() {
   if (authorEditPictureRef.value.files[0]) {
@@ -51,29 +47,23 @@ async function authorEditPictureChange() {
   }
 }
 async function onAuthorEditClick(author) {
+  
   authorToEdit.value = { ...author };
   authorEditImageUrl.value = null; 
 }
 async function onUpdateAuthor() {
-  const formData = new FormData();
-  
-  
-  if (authorEditPictureRef.value.files[0]) {
-    formData.append('picture', authorEditPictureRef.value.files[0]);
-  }
-  
-  formData.set('nameAuthor', authorToEdit.value.nameAuthor);
-  formData.set('bio', authorToEdit.value.bio);
-  
-  await axios.put(`/api/authors/${authorToEdit.value.id}/`, formData);
-  
-  await fetchAuthor();
+    const formData = new FormData();
+    if (authorEditPictureRef.value.files[0]) {
+      formData.append('picture', authorEditPictureRef.value.files[0]);
+    }
+    formData.set('nameAuthor', authorToEdit.value.nameAuthor);
+    formData.set('bio', authorToEdit.value.bio);
+    await axios.put(`/api/authors/${authorToEdit.value.id}/`, formData);
+    await dataStore.fetchAuthors();
 }
-
 
 </script>
 <template>
-  
     <div v-if="userInfo && userInfo.is_authenticated">
         <div class="border p-5">
           <div class="mb-5" v-if="userInfo && userInfo.is_authenticated && userInfo.is_staff">

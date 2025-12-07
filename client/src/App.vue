@@ -1,50 +1,12 @@
 <script setup>
 import axios from 'axios';
 import Cookies from 'js-cookie';
-
-import {computed, onBeforeMount, ref} from 'vue';
+import {onBeforeMount, ref} from 'vue';
 import {useUserStore} from '@/stores/user_store';
 import {storeToRefs} from "pinia";
-
-const readers = ref([]);
-const books = ref([]);
-const genre = ref([]);
-const authors = ref([]);
-const bookItem = ref([]);
-
-async function fetchReaders() {
-    const l = await axios.get("/api/readers");
-    readers.value = l.data    
-}
-async function fetchBooks() {
-    const l = await axios.get("/api/books");
-    books.value = l.data    
-}
-async function fetchGenre() {
-    const l = await axios.get("/api/genres");
-    genre.value = l.data    
-}
-async function fetchAuthor() {
-    const l = await axios.get("/api/authors");
-    authors.value = l.data    
-}
-async function fetchBookItem() {
-    const l = await axios.get("/api/bookinstances");
-    bookItem.value = l.data    
-}
-onBeforeMount(async () => {
-    await fetchReaders()
-    await fetchBooks()
-    await fetchGenre()
-    await fetchAuthor()
-    await fetchBookItem()
-})
 const userStore = useUserStore()
 
-const {
-    userInfo,
-} = storeToRefs(userStore)
-
+const {userInfo} = storeToRefs(userStore)
 async function handleLogout() {
     await userStore.logout();
 }

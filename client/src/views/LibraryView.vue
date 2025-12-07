@@ -1,69 +1,44 @@
 <script setup>
 import axios from 'axios';
-import {computed, onBeforeMount, ref} from 'vue';
+import {computed, onBeforeMount, ref,watch} from 'vue';
 import {useUserStore} from '@/stores/user_store';
+import { useDataStore } from '@/stores/data_store';
+import QRCode from 'qrcode';
 import {storeToRefs} from "pinia";
-const readers = ref([]);
-const books = ref([]);
-const genre = ref([]);
-const authors = ref([]);
-const bookItem = ref([]);
+const userStore = useUserStore()
+const dataStore = useDataStore();
+
 const showImageModal = ref(false);
 const currentImageUrl = ref('');
-const userStore = useUserStore()
 const username = ref();
 const password = ref();
+const showAllAuthorsModal = ref(false);
+const showAllBooksModal = ref(false);
 
-async function fetchReaders() {
-    const l = await axios.get("/api/readers");
-    readers.value = l.data    
-}
-async function fetchBooks() {
-    const l = await axios.get("/api/books");
-    books.value = l.data    
-}
-async function fetchGenre() {
-    const l = await axios.get("/api/genres");
-    genre.value = l.data    
-}
-async function fetchAuthor() {
-    const l = await axios.get("/api/authors");
-    authors.value = l.data    
-}
-async function fetchBookItem() {
-    const l = await axios.get("/api/bookinstances");
-    bookItem.value = l.data    
-}
+const key = ref('');
+const show2FAModal = ref(false);
+const qrcodeUrl = ref();
+const totpUrl = ref();
+
+const { books, genres, authors, bookItem, readers } = storeToRefs(dataStore);
+const {userInfo} = storeToRefs(userStore)
+
+
 onBeforeMount(async () => {
-    await fetchReaders()
-    await fetchBooks()
-    await fetchGenre()
-    await fetchAuthor()
-    await fetchBookItem()
+    dataStore.fetchReaders()
+    dataStore.fetchBooks()
+    dataStore.fetchGenres()
+    dataStore.fetchAuthors()
+    dataStore.fetchBookItem()
 })
 function openImageModal(imageUrl) {
   currentImageUrl.value = imageUrl;
   showImageModal.value = true;
 }
-const {
-    userInfo,
-} = storeToRefs(userStore)
+
 async function onFormSend() {
     userStore.login(username.value, password.value)
 }
-const uniqueGenres = computed(() => {
-  const seen = new Set();
-  return genre.value.filter(item => {
-    if (seen.has(item.name)) {
-      return false;
-    }
-    seen.add(item.name);
-    return true;
-  });
-});
-
-const showAllAuthorsModal = ref(false);
-const showAllBooksModal = ref(false);
 
 
 const paginatedAuthors = computed(() => {
@@ -73,8 +48,6 @@ const paginatedBooks = computed(() => {
   return books.value.slice(0, 10);
 });
 
-
-
 function openAllAuthorsModal() {
   showAllAuthorsModal.value = true;
 }
@@ -82,52 +55,51 @@ function openAllBooksModal() {
   showAllBooksModal.value = true;
 }
 
-
 async function exportBooksToExcel() {
         const response = await axios.get('/api/books/export-excel/', {
             responseType: 'blob' 
         });
-        
-   
         const url = window.URL.createObjectURL(new Blob([response.data]));
         const link = document.createElement('a');
         link.href = url;
         link.setAttribute('download', 'library_books.xlsx');
         document.body.appendChild(link);
-        link.click();
-        
+        link.click();  
         link.remove();
-        window.URL.revokeObjectURL(url);
-        
-    
+        window.URL.revokeObjectURL(url);   
 }
-
-const twoFACode = ref(''); 
-const show2FAModal = ref(false);
 
 function open2FAModal() {
-    userStore.generate2FACode();
-    twoFACode.value = '';
-    
-    show2FAModal.value = true;
+  show2FAModal.value = true;
 }
-async function verify2FA() {
-    const result = await userStore.verify2FACode(twoFACode.value);
-    if (result && result.success) {
+async function onActivate() {
+    await axios.post("/api/user/second-login/", {
+        key: key.value  
+    })
+    await userStore.checkLogin();  
+    if (userInfo.value.second) {
         show2FAModal.value = false;
     }
 }
+async function getTotpKey() {
+    let r = await axios.get('/api/user/get-totp/')
+    totpUrl.value = r.data.url;
+}
+watch(totpUrl, async () => {
+    qrcodeUrl.value = await QRCode.toDataURL(totpUrl.value);
+})
+
 </script>
 <template>
 
- 
+
    <div class="container mt-5">
         <div v-if="userInfo && userInfo.is_authenticated" class="container mt-5">
             <h3>Здравствуй, {{userInfo.username}}</h3>
-            <div v-if="userInfo.is_doublefaq" class="alert alert-success mt-2">
+            <div v-if="userInfo.second" class="alert alert-success mt-2">
                 Двухфакторная аутентификация активна
             </div>
-            <div v-if="userInfo.is_staff && !userInfo.is_doublefaq" class="alert alert-warning mt-2 d-flex justify-content-between align-items-center">
+            <div v-if="userInfo.is_staff && !userInfo.second" class="alert alert-warning mt-2 d-flex justify-content-between align-items-center">
                 <span>Для редактирования данных требуется двухфакторная аутентификация</span>
                 <button @click="open2FAModal" class="btn btn-primary btn-sm">
                     Войти по второму фактору
@@ -174,7 +146,7 @@ async function verify2FA() {
             </div>
             <div class="card-body">
                 <div class="row">
-                    <template v-for="genre in uniqueGenres" :key="genre.id">
+                    <template v-for="genre in genres" :key="genre.id">
                           <div class="col-md-4 mb-3">
                         <div class="card">
                             <div class="card-body">
@@ -203,24 +175,25 @@ async function verify2FA() {
                 <div class="row">
                     <template v-for="book in paginatedBooks">
                         <div class="col-md-6 mb-3">
-                        <div class="card">
-                            <div class="card-body">
-                                <h5 class="card-title">{{ book.name }}</h5>
-                                <p class="card-text">
-                                    <strong>Автор:</strong>   {{ authors.find(a => a.id === book.author)?.nameAuthor }} <br>
-
-                                    <strong>Год:</strong> {{ book.publication_year }}<br>
-                                   <strong>Жанр: </strong> 
-                                    {{ genre.find(g => g.id === book.genres)?.name || 'Не указан' }}
-                                 
-                                           
-                                       
-                                    <br>
-                                    <strong>Описание:</strong> {{ book.description }}
-                                </p>
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5 class="card-title">{{ book.name }}</h5>
+                                    <p class="card-text">
+                                        <strong>Автор:</strong> 
+                                        {{ (authors || []).find(a => a.id === book.author)?.nameAuthor || 'Не указан' }} 
+                                        <br>
+                                        
+                                        <strong>Год:</strong> {{ book.publication_year }}<br>
+                                        
+                                        <strong>Жанр:</strong> 
+                                        {{ (genres || []).find(g => g.id === book.genres)?.name || 'Не указан' }}
+                                        <br>
+                                        
+                                        <strong>Описание:</strong> {{ book.description }}
+                                    </p>
+                                </div>
                             </div>
                         </div>
-                    </div>
                     </template>
                 </div>
             </div>
@@ -371,18 +344,19 @@ async function verify2FA() {
                     <template v-for="book in books" :key="book.id">
                          <div class="col-md-6 mb-3">
                             <div class="card">
-                               <div class="card-body">
+                              <div class="card-body">
                                     <h5 class="card-title">{{ book.name }}</h5>
                                     <p class="card-text">
-                                        <strong>Автор:</strong>   {{ authors.find(a => a.id === book.author)?.nameAuthor }} <br>
-
-                                        <strong>Год:</strong> {{ book.publication_year }}<br>
-                                    <strong>Жанр: </strong> 
-                                        {{ genre.find(g => g.id === book.genres)?.name || 'Не указан' }}
-                                    
-                                            
-                                        
+                                        <strong>Автор:</strong> 
+                                        {{ (authors || []).find(a => a.id === book.author)?.nameAuthor || 'Не указан' }} 
                                         <br>
+                                        
+                                        <strong>Год:</strong> {{ book.publication_year }}<br>
+                                        
+                                        <strong>Жанр:</strong> 
+                                        {{ (genres || []).find(g => g.id === book.genres)?.name || 'Не указан' }}
+                                        <br>
+                                        
                                         <strong>Описание:</strong> {{ book.description }}
                                     </p>
                                 </div>
@@ -400,52 +374,40 @@ async function verify2FA() {
         </div>
    </div>
 <div v-if="show2FAModal" class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5)">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Двухфакторная аутентификация</h5>
-                    <button
-                        type="button"
-                        class="btn-close"
-                        @click="show2FAModal = false"
-                        aria-label="Close"
-                    ></button>
-                </div>
-                <div class="modal-body">
-                    <p>Введите 6-значный код</p>
-                    <div class="form-floating mb-3">
-                        <input
-                            v-model="twoFACode"
-                            type="text"
-                            class="form-control"
-                            placeholder="000000"
-                            maxlength="6"
-                            
-                        >
-                        <label>Код подтверждения</label>
-                    </div>
-                    
-                </div>
-                <div class="modal-footer">
-                    <button
-                        type="button"
-                        class="btn btn-secondary"
-                        @click="show2FAModal = false"
-                    >
-                        Отмена
-                    </button>
-                    <button
-                        type="button"
-                        class="btn btn-primary"
-                        @click="verify2FA"
-                        :disabled="!twoFACode || twoFACode.length !== 6"
-                    >
-                        Подтвердить
-                    </button>
-                </div>
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Двухфакторная аутентификация</h5>
+                <button
+                    type="button"
+                    class="btn-close"
+                    @click="show2FAModal = false"
+                    aria-label="Close"
+                ></button>
+            </div>
+            <div class="modal-body">
+                <input type="text" v-model="key" class="form-control mb-2" placeholder="Введите 6-значный код">
+                <button @click="onActivate" class="btn btn-primary mb-2">Активировать второй фактор</button>
+                
+               
+            </div>
+            <button @click="getTotpKey">Запросить ключ</button>
+            <br>
+            <div style="padding: 1rem  0">{{ totpUrl  }}</div>
+            <br>
+            <img :src="qrcodeUrl" alt="">
+            <div class="modal-footer">
+                <button
+                    type="button"
+                    class="btn btn-secondary"
+                    @click="show2FAModal = false"
+                >
+                    Закрыть
+                </button>
             </div>
         </div>
     </div>
+</div>
 <div v-if="userInfo && !userInfo.is_authenticated" class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5)">
     <div class="modal-dialog modal-lg">
       <div class="modal-content">

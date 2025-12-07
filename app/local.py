@@ -1,5 +1,3 @@
-from app.settings import BASE_DIR
-
 ALLOWED_HOSTS = ['*']
 CSRF_TRUSTED_ORIGINS = [
     'http://localhost:5173',
@@ -9,12 +7,12 @@ CSRF_TRUSTED_ORIGINS = [
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'NAME': 'db.sqlite3',
     }
 }
 
 AUTH_PASSWORD_VALIDATORS = []
-
+CORS_ALLOW_CREDENTIALS = True 
 DEBUG = True
 
 REST_FRAMEWORK = {

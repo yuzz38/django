@@ -2,57 +2,35 @@
 import axios from 'axios';
 import {computed, onBeforeMount, ref} from 'vue';
 import {useUserStore} from '@/stores/user_store';
+import { useDataStore } from '@/stores/data_store';
 import {storeToRefs} from "pinia";
 const userStore = useUserStore()
-const books = ref([]);
-const genre = ref([]);
-const authors = ref([]);
+const dataStore = useDataStore();
+
 const booksToAdd = ref({});
 const bookToEdit = ref({});
-const selectedAuthor = ref(null);
-const selectedGenre = ref(null);
 
-async function fetchBooks() {
-    const l = await axios.get("/api/books");
-    books.value = l.data    
-}
-async function fetchGenre() {
-    const l = await axios.get("/api/genres");
-    genre.value = l.data    
-}
-async function fetchAuthor() {
-    const l = await axios.get("/api/authors");
-    authors.value = l.data    
-}
-
-const {
-    userInfo,
-} = storeToRefs(userStore)
-
+const { books, genres, authors } = storeToRefs(dataStore);
+const {userInfo} = storeToRefs(userStore)
 onBeforeMount(async () => {
-    fetchBooks()
-    fetchGenre()
-    fetchAuthor()
+    dataStore.fetchBooks();
+    dataStore.fetchGenres();
+    dataStore.fetchAuthors();
 })
-
 async function onBookAdd() {
   await axios.post("/api/books/", {
     ...booksToAdd.value,
   });
-  await fetchBooks(); // переподтягиваю
+  await dataStore.fetchBooks(); // переподтягиваю
 }
-
 async function onRemoveClickBook(book) {
-  if (!userInfo.value.is_doublefaq) {
+  if (userInfo.value.is_staff && !userInfo.value.second) {
         alert('Для редактирования требуется двухфакторная аутентификация. Нажмите кнопку "Войти по второму фактору" на главной странице.');
         return;
     }
-  else {
-    await axios.delete(`/api/books/${book.id}/`);
-    await fetchBooks(); // переподтягиваю
-  }
+   await axios.delete(`/api/books/${book.id}/`);
+    await dataStore.fetchBooks(); // переподтягиваю
 }
-
 async function onBookEditClick(book) {
   bookToEdit.value = { ...book };
 }
@@ -60,30 +38,9 @@ async function onUpdateBook() {
   await axios.put(`/api/books/${bookToEdit.value.id}/`, {
     ...bookToEdit.value,
   });
-  await fetchBooks();
+  await dataStore.fetchBooks();
 }
 
-const uniqueGenres = computed(() => {
-  const seen = new Set();
-  return genre.value.filter(item => {
-    if (seen.has(item.name)) {
-      return false;
-    }
-    seen.add(item.name);
-    return true;
-  });
-});
-
-const filteredAuthorItems = computed(() => {
-  let filtered = books.value;
-  if (selectedAuthor.value) {
-    filtered = filtered.filter(item => item.author === selectedAuthor.value);
-  }
-  if (selectedGenre.value) {
-    filtered = filtered.filter(item => item.genres === selectedGenre.value);
-  }
-  return filtered;
-}); 
 </script>
 
 <template>
@@ -95,7 +52,7 @@ const filteredAuthorItems = computed(() => {
               <div class="row" style="row-gap: 20px;">
                   <div class="col-4">
                   <div class="form-floating">
-                      <!-- ТУТ ПОДКЛЮЧИЛ studentToAdd.name -->
+                     
                       <input
                       type="text"
                       class="form-control"
@@ -118,7 +75,7 @@ const filteredAuthorItems = computed(() => {
                  <div class="col-4">
                     <div class="form-floating">
                       <select class="form-select" v-model="booksToAdd.genres"> 
-                        <option :value="g.id" v-for="g in uniqueGenres" :key="g.id">
+                        <option :value="g.id" v-for="g in genres" :key="g.id">
                           {{ g.name }}
                         </option>
                       </select>
@@ -155,38 +112,11 @@ const filteredAuthorItems = computed(() => {
               </div>
           </form>
           </div>
-          <div class="mb-4" v-if="userInfo && userInfo.is_authenticated">
-            <div class="d-flex" style="gap: 20px;">
-              <div class="col-6">
-                <h4>Фильтр по авторам</h4>
-                <div class="form-floating">
-                  <select class="form-select" v-model="selectedAuthor">
-                    <option value="">Все авторы</option>
-                    <option :value="author.id" v-for="author in authors" :key="author.id">
-                      {{ author.nameAuthor }}
-                    </option>
-                  </select>
-                  <label for="floatingInput">Выберите автора</label>
-                </div>
-              </div>
-              <div class="col-6">
-                <h4>Фильтр по жанрам</h4>
-                <div class="form-floating">
-                  <select class="form-select" v-model="selectedGenre">
-                    <option value="">Все жанры</option>
-                    <option :value="g.id" v-for="g in uniqueGenres" :key="g.id">
-                      {{ g.name }}
-                    </option>
-                  </select>
-                  <label for="floatingInput">Выберите жанр</label>
-                </div>
-              </div>
-            </div>
-          </div>
+          
           <div>
             <h4>Список книг</h4>
             <div class="row">
-            <template v-for="item in filteredAuthorItems">
+            <template v-for="item in books">
             <div class="col-3 p-3 border d-flex justify-content-between align-items-center flex-wrap" style="position: relative;">
               <div style="display:block; width:100%;"><h5>Название: </h5></div><div>{{ item.name }}</div>
             

@@ -2,46 +2,22 @@
 import axios from 'axios';
 import {computed, onBeforeMount, ref} from 'vue';
 import {useUserStore} from '@/stores/user_store';
+import { useDataStore } from '@/stores/data_store';
 import {storeToRefs} from "pinia";
 const userStore = useUserStore()
+const dataStore = useDataStore()
 
-const {
-    userInfo,
-} = storeToRefs(userStore)
-const readers = ref([]);
-const books = ref([]);
-const genre = ref([]);
-const authors = ref([]);
-const bookItem = ref([]);
 const selectedReader = ref(null); 
 const booksToAddItem = ref({});
 const bookToEditItem = ref({});
-async function fetchReaders() {
-    const l = await axios.get("/api/readers");
-    readers.value = l.data    
-}
-async function fetchBooks() {
-    const l = await axios.get("/api/books");
-    books.value = l.data    
-}
-async function fetchGenre() {
-    const l = await axios.get("/api/genres");
-    genre.value = l.data    
-}
-async function fetchAuthor() {
-    const l = await axios.get("/api/authors");
-    authors.value = l.data    
-}
-async function fetchBookItem() {
-    const l = await axios.get("/api/bookinstances");
-    bookItem.value = l.data    
-}
+
+const {userInfo} = storeToRefs(userStore)
+const { books , readers , bookItem } = storeToRefs(dataStore);
+
 onBeforeMount(async () => {
-    await fetchReaders()
-    await fetchBooks()
-    await fetchGenre()
-    await fetchAuthor()
-    await fetchBookItem()
+  dataStore.fetchReaders()
+  dataStore.fetchBooks()
+  dataStore.fetchBookItem()
 })
 
 const filteredBookItems = computed(() => {
@@ -54,19 +30,16 @@ async function onBookAddItem() {
   await axios.post("/api/bookinstances/", {
     ...booksToAddItem.value,
   });
-  await fetchBookItem(); // переподтягиваю
+  await dataStore.fetchBookItem(); // переподтягиваю
 }
 async function onRemoveClickBookItem(bookItem) {
-  if (!userInfo.value.is_doublefaq) {
+  if (userInfo.value.is_staff && !userInfo.value.second) {
         alert('Для редактирования требуется двухфакторная аутентификация. Нажмите кнопку "Войти по второму фактору" на главной странице.');
         return;
     }
-  else {
-    await axios.delete(`/api/bookinstances/${bookItem.id}/`);
-  await fetchBookItem(); // переподтягиваю
-  }
+  await axios.delete(`/api/bookinstances/${bookItem.id}/`);
+  await dataStore.fetchBookItem(); // переподтягиваю
 }
-
 async function onBookEditClickItem(book) {
   bookToEditItem.value = { ...book };
 }
@@ -74,7 +47,7 @@ async function onUpdateBookItem() {
   await axios.put(`/api/bookinstances/${bookToEditItem.value.id}/`, {
     ...bookToEditItem.value,
   });
-  await fetchBookItem();
+  await dataStore.fetchBookItem();
 }
 </script>
 <template>

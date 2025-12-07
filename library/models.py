@@ -4,7 +4,6 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.db.models.signals import post_delete
 
-
 class Author(models.Model):
     nameAuthor = models.TextField("ФИО")
     bio = models.TextField("Биография")
@@ -52,7 +51,7 @@ class Reader(models.Model):
     card_number = models.CharField("Номер читательского билета")
     user = models.OneToOneField("auth.User", on_delete=models.CASCADE, null=True)
     picture = models.ImageField("Фото", null=True, upload_to="library_img")
-    
+    totp_key = models.CharField(max_length=128, null=True)
     def __str__(self) -> str:
         return f"{self.first_name} {self.last_name}"
 
@@ -85,11 +84,8 @@ class BookInstance(models.Model):
 @receiver(post_save, sender=Reader)
 def create_user_for_reader(sender, instance, created, **kwargs):
     if created:
-        
         username = f"{instance.first_name}_{instance.last_name}"
-        
         try:
-            
             user = User.objects.create_user(
                 username=username,
                 email=instance.email,
@@ -97,11 +93,10 @@ def create_user_for_reader(sender, instance, created, **kwargs):
                 first_name=instance.first_name,
                 last_name=instance.last_name
             )
-            
-          
             instance.user = user
+            import pyotp
+            instance.totp_key = pyotp.random_base32()
             instance.save()
-            
         except Exception as e:
             print(f"Ошибка при создании пользователя: {e}")
 
@@ -114,7 +109,6 @@ def update_user_for_reader(sender, instance, created, **kwargs):
             instance.user.first_name = instance.first_name
             instance.user.last_name = instance.last_name
             instance.user.email = instance.email
-            
             
             new_username = f"{instance.first_name}_{instance.last_name}"
             if instance.user.username != new_username:
@@ -129,9 +123,7 @@ def update_user_for_reader(sender, instance, created, **kwargs):
             
 @receiver(post_delete, sender=Reader)
 def delete_user_for_reader(sender, instance, **kwargs):
-
     try:
-        
         if instance.email:
             user = User.objects.filter(email=instance.email).first()
             if user:
